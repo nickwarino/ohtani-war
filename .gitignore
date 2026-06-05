@@ -1,0 +1,9 @@
+# Publish only the static site (index.html + web/). Everything below stays local & private.
+.DS_Store
+/Ohtani/
+/charts/
+/data/
+/scripts/
+/house_style_explorations/
+/copy_stat_sheet_from_onedrive.sh
+/README.md

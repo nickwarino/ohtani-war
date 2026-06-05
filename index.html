@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ohtani WAR — Contextualizing the Greatest Two-Way Career</title>
+<style>
+  :root{
+    --ink:#0B0B0B;--sub:#5A5A5A;--faint:#8A8A8A;
+    --ohtani:#1166CC;--bonds:#E8772E;--ruth:#0C2340;
+    --bg:#fff;--soft:#F6F8FB;--line:#E7EBF1;--cloud:#C9CCD1;
+    --display:"Futura","Trebuchet MS",sans-serif;
+    --body:"Gill Sans","Gill Sans MT","Helvetica Neue",Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.65;font-size:18px;-webkit-font-smoothing:antialiased;}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--ohtani);z-index:200;}
+  nav{position:fixed;top:0;left:0;right:0;height:50px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);
+      border-bottom:1px solid var(--line);z-index:150;display:flex;align-items:center;justify-content:center;gap:3px;flex-wrap:wrap;}
+  nav a{font-family:var(--display);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--sub);
+        text-decoration:none;padding:6px 8px;border-radius:6px;transition:.2s;}
+  nav a:hover,nav a.active{color:var(--ohtani);background:var(--soft);}
+  nav .brand{font-family:var(--display);font-weight:bold;color:var(--ink);margin-right:10px;}
+  nav .brand .o{color:var(--ohtani)}nav .brand .r{color:var(--ruth)}nav .brand .b{color:var(--bonds)}
+
+  /* sticky controls */
+  #controls{position:fixed;top:50px;left:0;right:0;z-index:140;background:rgba(255,255,255,.96);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:9px 16px;display:flex;
+    align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+  #controls .cap{font-family:var(--display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);}
+  #legend{display:flex;gap:7px;flex-wrap:wrap;}
+  .lg{font-family:var(--display);font-weight:bold;font-size:13px;border:1.5px solid var(--line);border-radius:30px;
+      padding:4px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s;user-select:none;}
+  .lg i{width:11px;height:11px;border-radius:50%;}
+  .lg.off{opacity:.4;}
+  .lg.static{cursor:default;color:var(--faint);border-color:transparent;}
+  .lg .x{color:var(--faint);font-weight:bold;margin-left:2px;}
+  .lg .x:hover{color:#c00;}
+  .searchbox{position:relative;}
+  .searchbox input{font-family:var(--body);font-size:14px;border:1.5px solid var(--line);border-radius:30px;
+      padding:6px 14px;width:190px;outline:none;}
+  .searchbox input:focus{border-color:var(--ohtani);}
+  #sresults{position:absolute;top:38px;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;
+      box-shadow:0 14px 34px -14px rgba(20,40,80,.35);display:none;z-index:160;overflow:hidden;}
+  #sresults .sr{padding:8px 13px;cursor:pointer;font-size:14px;display:flex;justify-content:space-between;gap:10px;}
+  #sresults .sr:hover{background:var(--soft);}
+  #sresults .sr span{color:var(--faint);font-size:12px;}
+
+  section{max-width:1040px;margin:0 auto;padding:84px 26px 24px;}
+  .eyebrow{font-family:var(--display);text-transform:uppercase;letter-spacing:.16em;font-size:13px;color:var(--ohtani);font-weight:bold;margin-bottom:10px;}
+  h1,h2{font-family:var(--display);font-weight:bold;line-height:1.08;letter-spacing:-.01em;margin:0 0 14px;}
+  h2{font-size:clamp(28px,4.4vw,46px);}
+  p{margin:0 0 16px;color:#1c1c1c;max-width:70ch;}
+  .o{color:var(--ohtani);font-weight:bold}.r{color:var(--ruth);font-weight:bold}.b{color:var(--bonds);font-weight:bold}
+  header.hero{max-width:none;min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;
+    text-align:center;padding:140px 26px 60px;background:radial-gradient(1200px 620px at 50% -10%,#EAF1FB,#fff 60%);}
+  header.hero h1{font-size:clamp(40px,7.6vw,96px);letter-spacing:-.02em;margin-bottom:6px;}
+  header.hero h1 .o{color:var(--ohtani)}header.hero h1 .r{color:var(--ruth)}header.hero h1 .b{color:var(--bonds)}
+  header.hero .accentbar{height:6px;width:90px;background:var(--ohtani);border-radius:3px;margin:18px auto 24px;}
+  header.hero .sub{font-size:clamp(18px,2.3vw,23px);color:var(--sub);max-width:34ch;margin:0 auto;}
+  .scrollcue{margin-top:40px;font-family:var(--display);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);animation:bob 1.8s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+
+  .chart{position:relative;width:100%;}
+  .chart canvas{position:absolute;top:0;left:0;pointer-events:none;}
+  .chart svg{display:block;width:100%;position:relative;z-index:1;}
+  .lolli svg{display:block;width:100%;}
+  .lolliscroll{position:relative;scrollbar-width:thin;scrollbar-color:var(--cloud) transparent;}
+  .lolliscroll::-webkit-scrollbar{width:8px;}
+  .lolliscroll::-webkit-scrollbar-thumb{background:var(--cloud);border-radius:4px;}
+  .lolliscroll::-webkit-scrollbar-track{background:transparent;}
+  .chart svg{cursor:crosshair;}
+  .zctrl{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:5px;z-index:3;}
+  .zctrl button{width:29px;height:29px;border:1px solid var(--line);background:rgba(255,255,255,.93);border-radius:7px;
+    font-family:var(--display);font-weight:bold;font-size:16px;color:var(--sub);cursor:pointer;line-height:1;padding:0;
+    box-shadow:0 2px 6px -3px rgba(20,40,80,.4);transition:.15s;}
+  .zctrl button:hover{color:var(--ohtani);border-color:var(--ohtani);}
+  .axlab{font-family:var(--body);font-size:13px;fill:var(--sub);}
+  .tick text{font-family:var(--body);font-size:12px;fill:var(--faint);}.tick line{stroke:var(--line);}.domain{stroke:none;}
+  figcaption{font-size:14px;color:var(--faint);margin-top:8px;}
+  .combo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:24px;align-items:start;margin-top:12px;}
+  .panel-h{font-family:var(--display);font-weight:bold;font-size:12.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px;}
+  @media(max-width:760px){.combo{grid-template-columns:1fr;}}
+
+  #tip{position:fixed;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 12px;
+    font-size:13.5px;box-shadow:0 12px 30px -12px rgba(20,40,80,.45);opacity:0;transition:opacity .1s;z-index:170;max-width:250px;}
+  #tip .nm{font-family:var(--display);font-weight:bold;font-size:15px;margin-bottom:2px;}#tip .row{color:var(--sub);}
+
+  .sliderwrap{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:6px 0 4px;}
+  .sliderhead{display:flex;align-items:baseline;gap:13px;flex-wrap:wrap;margin-bottom:4px;}
+  .sliderhead .n{font-family:var(--display);font-weight:bold;font-size:38px;line-height:1;color:var(--ohtani);}
+  .sliderhead .nlbl{font-size:15px;color:var(--sub);}
+  .playbtn{font-family:var(--display);font-weight:bold;font-size:14px;border:1.5px solid var(--ohtani);background:#fff;
+    color:var(--ohtani);padding:7px 16px;border-radius:30px;cursor:pointer;}
+  .playbtn:hover{background:var(--ohtani);color:#fff;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:4px;background:var(--line);outline:none;margin:12px 0 2px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--ohtani);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+
+  .tablewrap{overflow-x:auto;margin:18px 0 6px;}
+  table.rk{border-collapse:separate;border-spacing:2px;font-family:var(--display);}
+  table.rk th{font-size:11.5px;color:var(--faint);font-weight:bold;padding:4px;text-align:center;}
+  table.rk td.nm{text-align:right;padding-right:12px;font-size:13px;white-space:nowrap;font-weight:bold;}
+  table.rk td.c{width:32px;height:32px;text-align:center;border-radius:5px;font-weight:bold;}
+  table.rk td.c .v{font-size:12px;line-height:1;}table.rk td.c .s{font-size:8px;opacity:.8;}
+  table.rk tr:hover td.c{outline:1px solid rgba(0,0,0,.18);}table.rk td.c.one{outline:2px solid #E0A200;}
+  .stats{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0 6px;}
+  .stat{flex:1 1 190px;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:20px 22px;}
+  .stat .big{font-family:var(--display);font-weight:bold;font-size:42px;line-height:1;color:var(--ohtani);}
+  .stat .lbl{font-size:14px;color:var(--sub);margin-top:8px;}
+  .divider{max-width:1040px;margin:6px auto;height:1px;background:var(--line);}
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s,transform .7s;}.reveal.in{opacity:1;transform:none;}
+  footer{max-width:1040px;margin:34px auto 0;padding:36px 26px 80px;border-top:1px solid var(--line);color:var(--faint);font-size:14px;}
+  footer b{color:var(--sub);}
+  @media(max-width:640px){body{font-size:16.5px}nav .brand,#controls .cap{display:none}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<nav>
+  <span class="brand">Ohtani <span class="o">WAR</span></span>
+  <a href="#map">Map</a><a href="#window">Stretch the Peak</a><a href="#career">Career</a>
+  <a href="#arc">Career Arc</a><a href="#ledger">Ledger</a>
+</nav>
+<div id="controls">
+  <span class="cap">Players:</span>
+  <div id="legend"></div>
+  <div class="searchbox">
+    <input id="search" type="text" placeholder="add any player…" autocomplete="off">
+    <div id="sresults"></div>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="eyebrow reveal">A two-way story, told in WAR per 162</div>
+  <h1 class="reveal">Ohtani WAR</h1>
+  <div class="accentbar reveal"></div>
+  <p class="sub reveal">Contextualizing the most singular career in baseball history, measured against the other GOATs — <span class="r">Babe Ruth</span> and <span class="b">Barry Bonds</span>.</p>
+  <div class="scrollcue reveal">scroll ↓</div>
+</header>
+
+<section id="map">
+  <div class="eyebrow reveal">01 — The Two-Way Map</div>
+  <h2 class="reveal">Where Greatness Lives</h2>
+  <p class="reveal">Every MLB player-season by batting vs pitching WAR per 162. <span class="b">Bonds</span> hugs the
+     hitting axis; <span class="r">Ruth</span> drifts from pitching to hitting; <span class="o">Ohtani</span> lives
+     in the empty upper-right. <em>Hover any dot, click a name above to isolate it, or search anyone in.</em></p>
+  <div class="stats reveal">
+    <div class="stat"><div class="big">1</div><div class="lbl">Ruth's seasons in Ohtani's two-way zone — 1918, and only 1918</div></div>
+    <div class="stat"><div class="big">+3.3</div><div class="lbl">Ohtani's baserunning runs / 162 — Ruth was −1.1, Bonds +1.9</div></div>
+    <div class="stat"><div class="big">#6</div><div class="lbl">where Ohtani's 2026 ranks among all single seasons ever</div></div>
+  </div>
+  <p class="reveal">And he runs. Bubble size is <strong>baserunning runs per 162</strong> — Ohtani's are big circles; negative
+     baserunners show as down-triangles. Where <span class="r">Ruth</span> was station-to-station (−1.1 BsR/162) and even
+     <span class="b">Bonds</span> only +1.9, <span class="o">Ohtani</span> adds <strong>+3.3</strong> on the bases — a third
+     dimension neither rival owned. <span class="r">Ruth</span> touched Ohtani's two-way quadrant exactly once, in
+     <strong>1918</strong> (6.4 batting / 3.0 pitching WAR); every other Ruth season was a pitcher's or a slugger's, never
+     both at once. Ohtani has lived there for years.</p>
+  <p class="reveal">So the honest yardstick isn't greatness <em>summed</em> — on totals, Ruth and Bonds win, and this page won't
+     pretend otherwise. It's greatness <em>multiplied</em> by originality: the <em>area</em> a career covers, not just its
+     height. Bonds was the greatest pure hitter; Ruth the greatest hitter who once pitched; <span class="o">Ohtani</span> is
+     elite along axes no one else occupies simultaneously. If you want one phrase for greatness × uniqueness, call it
+     <strong>singular greatness</strong> — a category of one.</p>
+  <div class="combo reveal">
+    <div class="lolli"><div class="panel-h">Best single seasons · WAR/162 · scroll for more ↓</div><div id="l-map"></div></div>
+    <div><div class="panel-h">Every player-season</div><div class="chart" id="c-map"></div></div>
+  </div>
+  <figcaption class="reveal">Bubble size = baserunning runs / 162; down-triangles are negative baserunners. Click a season on the left to ring it on the right. <strong>⌘/Ctrl-scroll or the ＋/− buttons to zoom, drag to pan, double-click to reset.</strong></figcaption>
+</section>
+<div class="divider"></div>
+
+<section id="window">
+  <div class="eyebrow reveal">02 — Stretch the Peak</div>
+  <h2 class="reveal">How Long Can Greatness Last?</h2>
+  <p class="reveal"><strong>Drag the slider</strong> from one season to twenty-six and the whole league is re-ranked by
+     every run of that many consecutive seasons. Runs from the same player are kept <em>non-overlapping</em> — his best
+     window is taken first, then anything sharing a season with it is dropped — so a peak is never counted twice, yet a star
+     can still appear for genuinely separate stretches. At one season it's the single-season list; stretch it out and watch
+     the cloud collapse toward the axes.</p>
+  <div class="sliderwrap reveal">
+    <div class="sliderhead"><span class="n" id="winN">1</span><span class="nlbl" id="winNlbl">consecutive season</span>
+      <button class="playbtn" id="winPlay" style="margin-left:auto">▶ Play</button></div>
+    <input type="range" id="winSlider" min="1" max="26" value="1" step="1">
+  </div>
+  <div class="combo reveal">
+    <div class="lolli"><div class="panel-h">Runs of this length · scroll for more ↓</div><div id="l-window"></div></div>
+    <div><div class="panel-h">Two-way space · every run</div><div class="chart" id="c-window"></div></div>
+  </div>
+  <figcaption class="reveal">Each point is one non-overlapping run of N consecutive seasons (avg WAR/162). All runs shown — no sampling. <strong>⌘/Ctrl-scroll or the ＋/− buttons to zoom, drag to pan, double-click to reset.</strong></figcaption>
+</section>
+<div class="divider"></div>
+
+<section id="career">
+  <div class="eyebrow reveal">03 — A Whole Career</div>
+  <h2 class="reveal">Career Value, Per Season</h2>
+  <p class="reveal">Total career WAR divided by seasons played. <span class="r">Ruth</span> is the benchmark;
+     <span class="b">Bonds</span> 3rd on hitting alone; <span class="o">Ohtani</span> 6th, the only two-way profile up top.</p>
+  <div class="combo reveal">
+    <div class="lolli"><div class="panel-h">Best careers · WAR/season · scroll for more ↓</div><div id="l-career"></div></div>
+    <div><div class="panel-h">Every career (min. 3 seasons)</div><div class="chart" id="c-career"></div></div>
+  </div>
+  <figcaption class="reveal">One point per player: career batting vs pitching WAR per season. Bubble = baserunning. <strong>⌘/Ctrl-scroll or the ＋/− buttons to zoom, drag to pan, double-click to reset.</strong></figcaption>
+</section>
+<div class="divider"></div>
+
+<section id="arc">
+  <div class="eyebrow reveal">04 — The Career Arc</div>
+  <h2 class="reveal">A Career, Adding Up</h2>
+  <p class="reveal">Cumulative WAR per 162, season by season, for <em>every</em> player since 1871. Here's the honest limit
+     of the comparison: <span class="o">Ohtani</span> does <em>not</em> climb steepest, and will almost certainly never catch
+     them on <em>totals</em>. <span class="r">Ruth</span> reaches 196 and <span class="b">Bonds</span> 167; through nine
+     seasons Ohtani sits at 64 — a strong but not singular <strong>20th</strong>-steepest start, trailing Wagner, Walter
+     Johnson, Ted Williams, Mathewson, Cy Young, Ruth, Pujols, Trout, Mays and others. He didn't debut in MLB until 23,
+     missed time to injury and the mound, and splits his value between bat and arm — so raw accumulation was never going to
+     be his argument. His case is singularity, not volume. <em>Hover any strand to light up a career.</em></p>
+  <div class="chart reveal" id="c-cum"></div>
+  <figcaption class="reveal">Cumulative WAR/162 by career-season number. (Ruth opens with a −0.1 rookie year, so his line stays near zero until season 3.)</figcaption>
+</section>
+<div class="divider"></div>
+
+<section id="ledger">
+  <div class="eyebrow reveal">05 — The Ledger</div>
+  <h2 class="reveal">Who Owns Each Length of Peak?</h2>
+  <p class="reveal">For every window from one season to twenty, the all-time rank of each elite player's best run.
+     Only <span class="r">Ruth</span> and Walter Johnson are ever No. 1.</p>
+  <div class="tablewrap reveal" id="c-table"></div>
+  <figcaption class="reveal">Cell = all-time rank (top) and avg WAR/162 (bottom). Gold = No. 1.</figcaption>
+</section>
+<footer>
+  <p><b>Methodology.</b> WAR is the average of Baseball-Reference and FanGraphs WAR, per 162 games (per Neil Paine), so
+     partial seasons get full prorated credit. "N consecutive seasons" ranks every consecutive run, but runs from the same
+     player are kept <em>non-overlapping</em> (greedy by value): the best window is taken first, then any window sharing a
+     season with it is dropped, then the next-best, and so on — so no season is double-counted, yet a star can still appear
+     for separate peaks (e.g. Bonds' 2001–04 and his earlier 1990–93). A single season is just a run of length one.
+     Bubble size is baserunning runs per 162; down-triangles mark negative baserunners. 2026 reflects the live season via the
+     MLB Stats API.</p>
+  <p><b>Data:</b> Neil Paine · Baseball-Reference · FanGraphs · Lahman/SABR · MLB Stats API.<br>
+     <b>Created by Nick Warino + Claude Code w/ Opus 4.8.</b></p>
+</footer>
+<div id="tip"></div>
+
+<script src="web/d3.v7.min.js"></script>
+<script src="web/mlb_data.js"></script>
+<script>
+const M=window.MLB,NM=M.names,P=M.players;
+const tip=document.getElementById('tip');
+function showTip(h,x,y){tip.innerHTML=h;tip.style.opacity=1;let tx=x+15,ty=y+15;
+  if(tx+255>innerWidth)tx=x-265;if(ty+130>innerHeight)ty=y-130;tip.style.left=tx+'px';tip.style.top=ty+'px';}
+function hideTip(){tip.style.opacity=0;}
+const yy=v=>"'"+String(v).slice(2);
+const span=(a,z)=>a===z?String(a):yy(a)+"-"+String(z).slice(2);
+const CLOUD='#C9CCD1';
+const STAR_COL={Ohtani:'#1166CC',Ruth:'#0C2340',Bonds:'#E8772E'};
+const PALETTE=['#2CA58D','#B5179E','#7B2CBF','#E07A00','#0A9396','#9B2226','#3A0CA3','#E0A100','#588157','#BC4749'];
+let palI=0;
+
+P.forEach((p,k)=>{p.k=k;p.name=NM[p.i];p.n=p.y.length;
+  p.pt=[0];p.pb=[0];p.pw=[0];p.ps=[0];
+  for(let i=0;i<p.n;i++){p.pt.push(p.pt[i]+p.b[i]+p.w[i]);p.pb.push(p.pb[i]+p.b[i]);p.pw.push(p.pw[i]+p.w[i]);p.ps.push(p.ps[i]+p.s[i]);}
+  p.runs=[];let s=0;for(let i=1;i<=p.n;i++){if(i===p.n||p.y[i]!==p.y[i-1]+1){p.runs.push([s,i-s]);s=i;}}});
+
+// ---- highlight series (global) ----
+const series=[];
+['Ohtani','Ruth','Bonds'].forEach(g=>series.push({k:M.starsIdx[g],name:g,color:STAR_COL[g],visible:true,star:true}));
+const listeners=[];
+function emit(){renderLegend();listeners.forEach(f=>f());}
+function visibleKs(){return new Set(series.filter(s=>s.visible).map(s=>s.k));}
+function seriesOf(k){return series.find(s=>s.k===k);}
+function addPlayer(k){const e=seriesOf(k);if(e)e.visible=true;
+  else series.push({k,name:P[k].name,color:PALETTE[palI++%PALETTE.length],visible:true});emit();}
+function soloToggle(k){const v=series.filter(s=>s.visible);
+  if(v.length===1&&v[0].k===k)series.forEach(s=>s.visible=true);else series.forEach(s=>s.visible=(s.k===k));emit();}
+function removePlayer(k){const i=series.findIndex(s=>s.k===k);if(i>=0&&!series[i].star){series.splice(i,1);emit();}}
+
+function renderLegend(){const el=document.getElementById('legend');el.innerHTML='';
+  series.forEach(s=>{const c=document.createElement('span');c.className='lg'+(s.visible?'':' off');
+    c.innerHTML=`<i style="background:${s.color}"></i>${s.name}`+(s.star?'':' <b class="x">×</b>');
+    c.onclick=e=>{if(e.target.classList.contains('x'))removePlayer(s.k);else soloToggle(s.k);};el.appendChild(c);});
+  const g=document.createElement('span');g.className='lg static';g.innerHTML=`<i style="background:${CLOUD}"></i>everyone else`;el.appendChild(g);}
+
+// ---- search ----
+const allNames=P.map(p=>({k:p.k,name:p.name,low:p.name.toLowerCase(),n:p.n}));
+const sIn=document.getElementById('search'),sBox=document.getElementById('sresults');
+sIn.addEventListener('input',()=>{const q=sIn.value.trim().toLowerCase();
+  if(!q){sBox.style.display='none';return;}
+  const hits=allNames.filter(a=>a.low.includes(q)).sort((a,b)=>b.n-a.n).slice(0,8);
+  sBox.innerHTML=hits.map(h=>`<div class="sr" data-k="${h.k}">${h.name}<span>${h.n} yr</span></div>`).join('');
+  sBox.style.display=hits.length?'block':'none';
+  sBox.querySelectorAll('.sr').forEach(d=>d.onclick=()=>{addPlayer(+d.dataset.k);sIn.value='';sBox.style.display='none';});});
+document.addEventListener('click',e=>{if(!e.target.closest('.searchbox'))sBox.style.display='none';});
+
+// ---- computations (cached) ----
+const winCache={};
+function windows(N){if(winCache[N])return winCache[N];const arr=[];
+  // generate every sliding run, then greedily keep the best non-overlapping runs per player
+  for(const p of P)for(const run of p.runs){const s=run[0],l=run[1];if(l<N)continue;
+    for(let j=s;j<=s+l-N;j++)arr.push({k:p.k,j,tot:(p.pt[j+N]-p.pt[j])/N,b:(p.pb[j+N]-p.pb[j])/N,
+      w:(p.pw[j+N]-p.pw[j])/N,sz:(p.ps[j+N]-p.ps[j])/N,a:p.y[j],z:p.y[j+N-1]});}
+  arr.sort((a,b)=>b.tot-a.tot);
+  const taken={},out=[];
+  for(const d of arr){const t=taken[d.k]||(taken[d.k]=[]);let ok=true;
+    for(const r of t)if(d.j<=r[1]&&r[0]<=d.j+N-1){ok=false;break;}
+    if(ok){t.push([d.j,d.j+N-1]);out.push(d);}}
+  out.forEach((d,i)=>d.rank=i+1);winCache[N]=out;return out;}
+let careerCache=null;
+function careers(){if(careerCache)return careerCache;
+  careerCache=P.filter(p=>p.n>=3).map(p=>{let b=0,w=0,s=0;for(let i=0;i<p.n;i++){b+=p.b[i];w+=p.w[i];s+=p.s[i];}
+    return {k:p.k,b:b/p.n,w:w/p.n,sz:s/p.n,tot:(b+w)/p.n,a:p.y[0],z:p.y[p.n-1],n:p.n};});
+  careerCache.sort((a,b)=>b.tot-a.tot);careerCache.forEach((d,i)=>d.rank=i+1);return careerCache;}
+function cumOf(p){if(p._cum)return p._cum;const o=[];let c=0;for(let i=0;i<p.n;i++){c+=p.b[i]+p.w[i];o.push([i+1,c]);}p._cum=o;return o;}
+
+// ================= ScatterView =================
+function ScatterView(sel,opts){
+  const root=d3.select(sel);
+  const canvas=root.append('canvas').node(),ctx=canvas.getContext('2d');
+  const svg=root.append('svg');
+  const clipId='clip-'+sel.replace(/[^a-zA-Z0-9]/g,''),cp=`url(#${clipId})`;
+  const clipRect=svg.append('defs').append('clipPath').attr('id',clipId).append('rect');
+  const gGrid=svg.append('g').attr('clip-path',cp),gAx=svg.append('g');
+  const gHi=svg.append('g').attr('clip-path',cp),gPin=svg.append('g').attr('clip-path',cp),gPts=svg.append('g').attr('clip-path',cp),gLab=svg.append('g').attr('clip-path',cp);
+  const overlay=svg.append('rect').attr('fill','transparent').style('pointer-events','all').style('cursor','crosshair');
+  let W,H,x,y,bx,by,zt=d3.zoomIdentity,cloud=[],hi=[],labels=[],qt=null,pinned=null;
+  const m={t:14,r:18,b:46,l:50},FONT="'Gill Sans',sans-serif";
+  const sizeR=d3.scaleSqrt().domain([0,opts.sizeMax||15]).range([1.1,opts.sizeRange||11]);
+  const R=v=>opts.sized?Math.max(1.1,sizeR(Math.abs(v||0))):1.8;
+  const neg=d=>opts.sized&&opts.sz&&opts.sz(d)<0;
+  const symb=d3.symbol();
+  function recompute(){const pts=opts.compute(),vis=visibleKs();cloud=[];hi=[];
+    for(let i=0;i<pts.length;i++){const d=pts[i];if(vis.has(d.k))hi.push(d);else cloud.push(d);}
+    labels=opts.label?hi:[];}
+  function resize(){W=root.node().clientWidth;H=opts.square?W:Math.max(360,Math.min(W*(opts.aspect||.62),560));
+    const dpr=window.devicePixelRatio||1;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+    svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
+    bx=d3.scaleLinear(opts.xDom,[m.l,W-m.r]);by=d3.scaleLinear(opts.yDom,[H-m.b,m.t]);
+    const iw=Math.max(0,W-m.l-m.r),ih=Math.max(0,H-m.t-m.b);
+    clipRect.attr('x',m.l).attr('y',m.t).attr('width',iw).attr('height',ih);
+    overlay.attr('x',m.l).attr('y',m.t).attr('width',iw).attr('height',ih);
+    zoom.extent([[m.l,m.t],[W-m.r,H-m.b]]).translateExtent([[m.l,m.t],[W-m.r,H-m.b]]);
+    applyZoom();}
+  function draw(){
+    ctx.clearRect(0,0,W,H);ctx.save();
+    ctx.beginPath();ctx.rect(m.l,m.t,Math.max(0,W-m.l-m.r),Math.max(0,H-m.b-m.t));ctx.clip();
+    ctx.fillStyle=CLOUD;ctx.globalAlpha=opts.cloudAlpha||.5;
+    for(let i=0;i<cloud.length;i++){const d=cloud[i],cx=x(opts.px(d)),cy=y(opts.py(d)),r=R(opts.sz?opts.sz(d):0);
+      ctx.beginPath();
+      if(neg(d)){ctx.moveTo(cx,cy+r*1.1);ctx.lineTo(cx-r,cy-r*0.85);ctx.lineTo(cx+r,cy-r*0.85);ctx.closePath();}
+      else ctx.arc(cx,cy,r,0,6.283);
+      ctx.fill();}ctx.globalAlpha=1;ctx.restore();
+    gAx.selectAll('*').remove();
+    gAx.append('g').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).ticks(7).tickSize(0).tickPadding(8).tickFormat(opts.xFmt||null));
+    gAx.append('g').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(7).tickSize(0).tickPadding(8));
+    gAx.selectAll('.domain').remove();
+    gGrid.selectAll('*').remove();
+    if(opts.zero)[[x(0),m.t,x(0),H-m.b],[m.l,y(0),W-m.r,y(0)]].forEach(c=>gGrid.append('line').attr('x1',c[0]).attr('y1',c[1]).attr('x2',c[2]).attr('y2',c[3]).attr('stroke','#DfE3EA'));
+    gAx.append('text').attr('class','axlab').attr('x',(m.l+W-m.r)/2).attr('y',H-8).attr('text-anchor','middle').text(opts.xLab);
+    gAx.append('text').attr('class','axlab').attr('transform',`translate(14,${(m.t+H-m.b)/2}) rotate(-90)`).attr('text-anchor','middle').text(opts.yLab);
+    const sel=gPts.selectAll('path.pt').data(hi,d=>d.k+'_'+d.a+'_'+d.z);
+    sel.exit().remove();
+    sel.enter().append('path').attr('class','pt').attr('stroke','#fff').attr('stroke-width',1).style('pointer-events','none')
+      .merge(sel)
+      .attr('transform',d=>`translate(${x(opts.px(d))},${y(opts.py(d))})${neg(d)?' rotate(180)':''}`)
+      .attr('d',d=>{const r=Math.max(3.5,R(opts.sz?opts.sz(d):0));
+        return symb.type(neg(d)?d3.symbolTriangle:d3.symbolCircle).size(neg(d)?r*r*2.4:Math.PI*r*r)();})
+      .attr('fill',d=>(seriesOf(d.k)||{}).color||'#444');
+    const fs=opts.labSize||11,cw=fs*0.55,placed=[];
+    const labData=labels.map(d=>({d,lx:x(opts.px(d))+Math.max(4,R(opts.sz?opts.sz(d):0))+3,ly:y(opts.py(d))+4,txt:opts.labelText(d)}))
+      .sort((a,b)=>b.d.tot-a.d.tot)
+      .filter(o=>{const r={x:o.lx,y:o.ly-fs,w:o.txt.length*cw+2,h:fs+2};
+        for(const p of placed)if(r.x<p.x+p.w&&p.x<r.x+r.w&&r.y<p.y+p.h&&p.y<r.y+r.h)return false;
+        placed.push(r);return true;});
+    const ls=gLab.selectAll('text').data(labData,o=>o.d.k+'_'+o.d.a+'_'+o.d.z);
+    ls.exit().remove();
+    ls.enter().append('text').attr('font-family',FONT).attr('font-weight','bold').style('pointer-events','none').attr('font-size',fs)
+      .merge(ls).attr('x',o=>o.lx).attr('y',o=>o.ly).attr('fill',o=>(seriesOf(o.d.k)||{}).color||'#444').text(o=>o.txt);
+    buildQt();drawPin();}
+  function buildQt(){const nodes=[];
+    for(const d of cloud)nodes.push({px:x(opts.px(d)),py:y(opts.py(d)),d,hi:false});
+    for(const d of hi)nodes.push({px:x(opts.px(d)),py:y(opts.py(d)),d,hi:true});
+    qt=d3.quadtree().x(n=>n.px).y(n=>n.py).addAll(nodes);}
+  function move(ev){if(!qt)return;const pt=d3.pointer(ev,svg.node()),f=qt.find(pt[0],pt[1],22);
+    gHi.selectAll('*').remove();if(!f){hideTip();return;}
+    const c=f.hi?((seriesOf(f.d.k)||{}).color||'#444'):'#444';
+    gHi.append('circle').attr('cx',f.px).attr('cy',f.py).attr('r',Math.max(4,R(opts.sz?opts.sz(f.d):0))+3.5).attr('fill','none').attr('stroke',c).attr('stroke-width',1.6);
+    showTip(opts.tip(f.d),ev.clientX,ev.clientY);}
+  function click(ev){if(zsupp)return;const pt=d3.pointer(ev,svg.node()),f=qt&&qt.find(pt[0],pt[1],22);if(f)addPlayer(f.d.k);}
+  function applyZoom(){x=zt.rescaleX(bx);y=zt.rescaleY(by);draw();}
+  let zsupp=false,zsto;
+  const zoom=d3.zoom().scaleExtent([1,40])
+    .filter(ev=>ev.type!=='wheel'||ev.ctrlKey||ev.metaKey)
+    .on('zoom',ev=>{zt=ev.transform;if(ev.sourceEvent&&ev.sourceEvent.type!=='wheel'){zsupp=true;hideTip();gHi.selectAll('*').remove();overlay.style('cursor','grabbing');}applyZoom();})
+    .on('end',()=>{overlay.style('cursor','crosshair');clearTimeout(zsto);zsto=setTimeout(()=>zsupp=false,60);});
+  overlay.on('mousemove',ev=>{if(!zsupp)move(ev);}).on('mouseleave',()=>{hideTip();gHi.selectAll('*').remove();}).on('click',click);
+  overlay.call(zoom).on('dblclick.zoom',null)
+    .on('dblclick',()=>overlay.transition().duration(350).call(zoom.transform,d3.zoomIdentity));
+  const ctrls=root.append('div').attr('class','zctrl');
+  ctrls.append('button').attr('title','Zoom in').text('+').on('click',()=>overlay.transition().duration(200).call(zoom.scaleBy,1.7));
+  ctrls.append('button').attr('title','Zoom out').text('−').on('click',()=>overlay.transition().duration(200).call(zoom.scaleBy,1/1.7));
+  ctrls.append('button').attr('title','Reset').text('⟲').on('click',()=>overlay.transition().duration(300).call(zoom.transform,d3.zoomIdentity));
+  function drawPin(){gPin.selectAll('*').remove();if(!pinned)return;
+    const all=cloud.concat(hi),pt=all.find(d=>d.k===pinned.k&&d.a===pinned.a&&d.z===pinned.z);if(!pt)return;
+    gPin.append('circle').attr('cx',x(opts.px(pt))).attr('cy',y(opts.py(pt))).attr('r',Math.max(5,R(opts.sz?opts.sz(pt):0))+6).attr('fill','none').attr('stroke','#111').attr('stroke-width',2).attr('opacity',.85);}
+  recompute();resize();
+  let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(resize,150);});
+  listeners.push(()=>{recompute();draw();});
+  return {redraw(){recompute();draw();},pin(w){pinned=w;draw();}};
+}
+
+// ================= Lollipop =================
+function Lollipop(sel,cfg){
+  const root=d3.select(sel);
+  const wrap=root.append('div').attr('class','lolliscroll').style('overflow-y','auto').style('max-height',(cfg.maxH||430)+'px');
+  const svg=wrap.append('svg'),g=svg.append('g');
+  let W=0,H=0,all=[],rows=[],limit=cfg.limit||25;const step=cfg.step||25,labelW=cfg.labelW||168,mr=34,mt=6,mb=6,FONT="'Gill Sans',sans-serif";
+  function draw(){all=cfg.compute();if(limit>all.length)limit=all.length;
+    rows=all.slice(0,limit).map(cfg.row);W=wrap.node().clientWidth;H=rows.length*19+10;
+    svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
+    const y=d3.scaleBand().domain(d3.range(rows.length)).range([mt,H-mb]).padding(.34),x=d3.scaleLinear([0,cfg.maxVal],[labelW,W-mr]);
+    const sel=g.selectAll('g.row').data(rows,(d,i)=>i),en=sel.enter().append('g').attr('class','row');
+    en.append('line').attr('class','seg');en.append('circle').attr('class','dot');
+    en.append('text').attr('class','nm').attr('text-anchor','end').attr('font-family',FONT).attr('font-size',12).attr('dy','.32em');
+    en.append('text').attr('class','val').attr('font-family','Futura,sans-serif').attr('font-size',11).attr('font-weight','bold').attr('dy','.32em');
+    const a=en.merge(sel);
+    a.attr('transform',(d,i)=>`translate(0,${y(i)+y.bandwidth()/2})`).style('cursor','pointer')
+      .on('mousemove',(e,d)=>showTip(`<div class="nm" style="color:${colOf(d)}">${d.name}</div><div class="row">Rank <b>#${d.rank}</b> · ${cfg.valName} <b>${d.val.toFixed(1)}</b>${d.yr?' · '+d.yr:''}</div>`,e.clientX,e.clientY))
+      .on('mouseleave',hideTip).on('click',(e,d)=>cfg.onPick&&cfg.onPick(d));
+    a.select('.seg').transition().duration(400).attr('x1',labelW).attr('x2',d=>x(d.val)).attr('stroke',d=>colOf(d)).attr('stroke-width',d=>seriesOf(d.k)?2.6:1.5);
+    a.select('.dot').transition().duration(400).attr('cx',d=>x(d.val)).attr('r',d=>seriesOf(d.k)?4.6:3).attr('fill',d=>colOf(d));
+    a.select('.nm').attr('x',labelW-8).attr('font-weight',d=>seriesOf(d.k)?'bold':'normal')
+      .html(d=>`<tspan fill="${colOf(d)}">${d.rank}. ${d.name}</tspan>`+(d.yr?` <tspan fill="#9AA0A8" font-weight="normal" font-size="10">${d.yr}</tspan>`:''));
+    a.select('.val').transition().duration(400).attr('x',d=>x(d.val)+7).attr('fill',d=>seriesOf(d.k)?colOf(d):'#777').text(d=>d.val.toFixed(1));
+    sel.exit().remove();}
+  function colOf(d){const s=seriesOf(d.k);return s?s.color:'#2A2A2A';}
+  wrap.node().addEventListener('scroll',()=>{const el=wrap.node();
+    if(el.scrollTop+el.clientHeight>=el.scrollHeight-80&&limit<all.length){limit=Math.min(all.length,limit+step);draw();}},{passive:true});
+  draw();let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(draw,150);});
+  listeners.push(draw);
+  return {redraw:draw,reset(){limit=cfg.limit||25;wrap.node().scrollTop=0;draw();}};
+}
+
+// ================= LineChart (cumulative) =================
+function LineChart(sel){
+  const root=d3.select(sel),canvas=root.append('canvas').node(),ctx=canvas.getContext('2d'),svg=root.append('svg');
+  const gAx=svg.append('g'),gStar=svg.append('g'),gLab=svg.append('g'),gHi=svg.append('g');
+  const overlay=svg.append('rect').attr('fill','transparent').style('pointer-events','all').style('cursor','crosshair');
+  let W,H,x,y,qt=null;const m={t:14,r:64,b:42,l:48};
+  const gen=()=>d3.line().x(d=>x(d[0])).y(d=>y(d[1]));
+  function resize(){W=root.node().clientWidth;H=Math.max(380,Math.min(W*.56,560));
+    const dpr=window.devicePixelRatio||1;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+    svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
+    x=d3.scaleLinear([1,M.maxSeason],[m.l,W-m.r]);y=d3.scaleLinear([0,M.maxCum*1.03],[H-m.b,m.t]);
+    overlay.attr('x',m.l).attr('y',m.t).attr('width',W-m.l-m.r).attr('height',H-m.t-m.b);draw();}
+  function draw(){
+    ctx.clearRect(0,0,W,H);ctx.strokeStyle=CLOUD;ctx.globalAlpha=.22;ctx.lineWidth=1;
+    const vis=visibleKs();
+    for(const p of P){if(vis.has(p.k))continue;const c=cumOf(p);ctx.beginPath();
+      for(let i=0;i<c.length;i++){const px=x(c[i][0]),py=y(c[i][1]);i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();}
+    ctx.globalAlpha=1;
+    gAx.selectAll('*').remove();
+    gAx.append('g').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).ticks(8).tickSize(0).tickPadding(8).tickFormat(d3.format('d')));
+    gAx.append('g').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(6).tickSize(0).tickPadding(8));
+    gAx.selectAll('.domain').remove();
+    gAx.append('text').attr('class','axlab').attr('x',(m.l+W-m.r)/2).attr('y',H-6).attr('text-anchor','middle').text('Season of career (1st, 2nd, 3rd …)');
+    gAx.append('text').attr('class','axlab').attr('transform',`translate(13,${(m.t+H-m.b)/2}) rotate(-90)`).attr('text-anchor','middle').text('Cumulative WAR / 162');
+    const sp=series.filter(s=>s.visible).map(s=>({s,p:P[s.k],pts:cumOf(P[s.k])}));
+    gStar.selectAll('path').data(sp,d=>d.s.k).join('path').attr('fill','none').attr('stroke',d=>d.s.color).attr('stroke-width',2.4).style('pointer-events','none').attr('d',d=>gen()(d.pts));
+    gLab.selectAll('*').remove();
+    sp.forEach(d=>{const last=d.pts[d.pts.length-1];
+      gLab.append('text').attr('x',x(last[0])+7).attr('y',y(last[1])).attr('dy','.32em').attr('fill',d.s.color).attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',12.5).style('pointer-events','none').text(`${d.s.name} (${Math.round(last[1])})`);
+      gLab.append('circle').attr('cx',x(d.pts[0][0])).attr('cy',y(d.pts[0][1])).attr('r',3).attr('fill',d.s.color).style('pointer-events','none');});
+    const nodes=[];for(const p of P){const c=cumOf(p);for(const pt of c)nodes.push({px:x(pt[0]),py:y(pt[1]),p,pt});}
+    qt=d3.quadtree().x(n=>n.px).y(n=>n.py).addAll(nodes);}
+  function move(ev){if(!qt)return;const pt=d3.pointer(ev,svg.node()),f=qt.find(pt[0],pt[1],28);
+    gHi.selectAll('*').remove();if(!f){hideTip();return;}
+    const s=seriesOf(f.p.k),col=s?s.color:'#777';
+    gHi.append('path').attr('fill','none').attr('stroke',col).attr('stroke-width',2).style('pointer-events','none').attr('d',gen()(cumOf(f.p)));
+    gHi.append('circle').attr('cx',f.px).attr('cy',f.py).attr('r',4).attr('fill',col);
+    showTip(`<div class="nm" style="color:${col}">${f.p.name}</div><div class="row">After <b>${f.pt[0]}</b> season${f.pt[0]>1?'s':''}: <b>${f.pt[1].toFixed(0)}</b> cumulative WAR/162</div>`,ev.clientX,ev.clientY);}
+  function click(ev){const pt=d3.pointer(ev,svg.node()),f=qt&&qt.find(pt[0],pt[1],28);if(f)addPlayer(f.p.k);}
+  overlay.on('mousemove',move).on('mouseleave',()=>{hideTip();gHi.selectAll('*').remove();}).on('click',click);
+  resize();let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(resize,150);});
+  listeners.push(draw);
+}
+
+// ================= instantiate =================
+renderLegend();
+const N1=()=>windows(1);
+const mapTip=d=>`<div class="nm" style="color:${(seriesOf(d.k)||{}).color||'#111'}">${P[d.k].name} ${d.a}</div><div class="row">Bat <b>${d.b.toFixed(1)}</b> · Pit <b>${d.w.toFixed(1)}</b> · BsR <b>${d.sz.toFixed(1)}</b></div>`;
+const mapBubble=ScatterView('#c-map',{compute:N1,px:d=>d.b,py:d=>d.w,sz:d=>d.sz,sized:true,sizeMax:15,sizeRange:11,
+  square:true,zero:true,xDom:[-5,16],yDom:[-5,16],xLab:'Batting WAR per 162 games',yLab:'Pitching WAR per 162 games',
+  label:true,labSize:11,labelText:d=>yy(d.a),tip:mapTip});
+Lollipop('#l-map',{compute:()=>windows(1),row:d=>({k:d.k,name:P[d.k].name,val:d.tot,rank:d.rank,yr:String(d.a),a:d.a,z:d.z}),
+  maxVal:16,labelW:182,valName:'WAR/162',onPick:r=>mapBubble.pin(r)});
+
+let curN=1;
+const winTip=d=>`<div class="nm" style="color:${(seriesOf(d.k)||{}).color||'#111'}">${P[d.k].name} ${span(d.a,d.z)}</div><div class="row">Rank <b>#${d.rank}</b> of ${windows(curN).length} · avg WAR/162 <b>${d.tot.toFixed(1)}</b></div><div class="row">Bat ${d.b.toFixed(1)} · Pit ${d.w.toFixed(1)} · BsR ${d.sz.toFixed(1)}</div>`;
+const winBubble=ScatterView('#c-window',{compute:()=>windows(curN),px:d=>d.b,py:d=>d.w,sz:d=>d.sz,sized:true,sizeMax:15,sizeRange:11,
+  square:true,zero:true,xDom:[-5,16],yDom:[-5,16],xLab:'Batting WAR per 162 games',yLab:'Pitching WAR per 162 games',
+  label:true,labSize:11,labelText:d=>span(d.a,d.z),tip:winTip});
+const winLol=Lollipop('#l-window',{compute:()=>windows(curN),row:d=>({k:d.k,name:P[d.k].name,val:d.tot,rank:d.rank,yr:span(d.a,d.z),a:d.a,z:d.z}),
+  maxVal:16,labelW:196,valName:'avg WAR/162',onPick:r=>winBubble.pin(r)});
+(function(){const slider=document.getElementById('winSlider'),nEl=document.getElementById('winN'),nLbl=document.getElementById('winNlbl'),play=document.getElementById('winPlay');
+  slider.max=M.maxN;let raf=null;
+  function setN(N){curN=N;nEl.textContent=N;nLbl.textContent=N===1?'consecutive season':'consecutive seasons';
+    if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{winBubble.redraw();winLol.redraw();});}
+  slider.addEventListener('input',()=>setN(+slider.value));
+  let timer=null;play.addEventListener('click',()=>{if(timer){clearInterval(timer);timer=null;play.textContent='▶ Play';return;}
+    play.textContent='❚❚ Pause';if(+slider.value>=M.maxN)slider.value=1;
+    timer=setInterval(()=>{let v=+slider.value;if(v>=M.maxN){clearInterval(timer);timer=null;play.textContent='▶ Play';return;}slider.value=v+1;setN(v+1);},760);});
+})();
+
+const carTip=d=>`<div class="nm" style="color:${(seriesOf(d.k)||{}).color||'#111'}">${P[d.k].name}</div><div class="row">Career rank <b>#${d.rank}</b> · ${d.n} yr (${d.a}-${d.z})</div><div class="row">Bat ${d.b.toFixed(1)} · Pit ${d.w.toFixed(1)} · BsR ${d.sz.toFixed(1)} /yr</div>`;
+const carBubble=ScatterView('#c-career',{compute:careers,px:d=>d.b,py:d=>d.w,sz:d=>d.sz,sized:true,sizeMax:6,sizeRange:11,
+  square:true,zero:true,xDom:[-2,10],yDom:[-2,10],xLab:'Batting WAR per season',yLab:'Pitching WAR per season',
+  label:true,labSize:11,labelText:d=>P[d.k].name.split(' ').slice(-1)[0]+' '+span(d.a,d.z),tip:carTip});
+Lollipop('#l-career',{compute:()=>careers(),row:d=>({k:d.k,name:P[d.k].name,val:d.tot,rank:d.rank,yr:`${d.n} yr · ${span(d.a,d.z)}`,a:d.a,z:d.z}),
+  maxVal:9.5,labelW:210,valName:'WAR/season',onPick:r=>carBubble.pin(r)});
+
+LineChart('#c-cum');
+
+// ---- ledger table (lazy) ----
+function buildTable(){const wrap=document.getElementById('c-table');if(wrap.dataset.done)return;wrap.dataset.done=1;
+  const TN=20,per={};
+  for(let N=1;N<=TN;N++){const arr=windows(N),seen=new Set();
+    for(let i=0;i<arr.length;i++){const d=arr[i];if(seen.has(d.k))continue;seen.add(d.k);(per[d.k]||(per[d.k]={}))[N]=[d.rank,+d.tot.toFixed(1)];}}
+  const summ=Object.keys(per).map(k=>{const rs=Object.values(per[k]).map(c=>c[0]);return {k:+k,min:Math.min.apply(null,rs),mean:rs.reduce((a,b)=>a+b,0)/rs.length};});
+  summ.sort((a,b)=>a.min-b.min||a.mean-b.mean);const keep=summ.slice(0,20);
+  const ramp=d3.interpolateRgbBasis(['#08306B','#2171B5','#4292C6','#9ECAE1','#DEEBF7']);
+  let html='<table class="rk"><tr><th></th>';for(let n=1;n<=TN;n++)html+=`<th>${n}</th>`;html+='</tr>';
+  keep.forEach(s=>{const nm=P[s.k].name,sObj=seriesOf(s.k),c=sObj?sObj.color:'#2A2A2A';
+    html+=`<tr><td class="nm" style="color:${c}">${nm}</td>`;
+    for(let n=1;n<=TN;n++){const cell=per[s.k][n];if(!cell){html+='<td class="c" style="background:#F2F2F2"></td>';continue;}
+      const bg=ramp((Math.min(cell[0],40)-1)/39),txt=cell[0]<=10?'#fff':'#0B0B0B';
+      html+=`<td class="c${cell[0]===1?' one':''}" style="background:${bg};color:${txt}"><div class="v">${cell[0]}</div><div class="s">${cell[1].toFixed(1)}</div></td>`;}
+    html+='</tr>';});
+  wrap.innerHTML=html+'</table>';}
+
+// ---- chrome ----
+addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progress').style.width=h.scrollTop/(h.scrollHeight-h.clientHeight)*100+'%';},{passive:true});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+const links=[...document.querySelectorAll('nav a')];
+document.querySelectorAll('section').forEach(s=>new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+s.id));if(s.id==='ledger')buildTable();}}),{rootMargin:'-45% 0px -50% 0px'}).observe(s));
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)buildTable();}),{rootMargin:'200px'}).observe(document.getElementById('ledger'));
+</script>
+</body>
+</html>
