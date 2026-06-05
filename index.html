@@ -479,8 +479,9 @@ function Lollipop(sel,cfg){
   const wrap=root.append('div').attr('class','lolliscroll').style('overflow-y','auto').style('max-height',(cfg.maxH||430)+'px');
   const svg=wrap.append('svg'),g=svg.append('g');
   let W=0,H=0,all=[],rows=[],limit=cfg.limit||25;const step=cfg.step||25,labelW=cfg.labelW||168,mr=34,mt=6,mb=6,FONT="'Gill Sans',sans-serif";
-  function draw(){all=cfg.compute();if(limit>all.length)limit=all.length;
-    rows=all.slice(0,limit).map(cfg.row);W=wrap.node().clientWidth;H=rows.length*19+10;
+  function draw(){all=cfg.compute();          // note: never shrink `limit` to all.length — slice caps safely,
+    rows=all.slice(0,limit).map(cfg.row);      // and shrinking would strand it small when the list grows back
+    W=wrap.node().clientWidth;H=rows.length*19+10;
     svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
     const y=d3.scaleBand().domain(d3.range(rows.length)).range([mt,H-mb]).padding(.34),x=d3.scaleLinear([0,cfg.maxVal],[labelW,W-mr]);
     const sel=g.selectAll('g.row').data(rows,(d,i)=>i),en=sel.enter().append('g').attr('class','row');
