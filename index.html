@@ -28,6 +28,17 @@
     backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:9px 16px;display:flex;
     align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
   #controls .cap{font-family:var(--display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);}
+  #erafilter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-left:1px solid var(--line);padding-left:12px;}
+  .erpresets{display:flex;gap:4px;}
+  .erpresets button{font-family:var(--display);font-weight:bold;font-size:11px;border:1.5px solid var(--line);background:#fff;
+    color:var(--sub);padding:4px 9px;border-radius:30px;cursor:pointer;transition:.15s;white-space:nowrap;}
+  .erpresets button.on{background:var(--ohtani);color:#fff;border-color:var(--ohtani);}
+  .erpresets button:not(.on):hover{color:var(--ohtani);border-color:var(--ohtani);}
+  .erslide{display:flex;align-items:center;gap:5px;font-family:var(--display);font-size:11px;color:var(--faint);
+    text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+  .erslide input[type=range]{width:84px;height:4px;margin:0;}
+  .erslide input[type=range]::-webkit-slider-thumb{width:14px;height:14px;border-width:2px;}
+  .erslide b{color:var(--ohtani);min-width:28px;text-align:left;}
   #legend{display:flex;gap:7px;flex-wrap:wrap;}
   .lg{font-family:var(--display);font-weight:bold;font-size:13px;border:1.5px solid var(--line);border-radius:30px;
       padding:4px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s;user-select:none;}
@@ -133,6 +144,16 @@
   <div class="searchbox">
     <input id="search" type="text" placeholder="add any player…" autocomplete="off">
     <div id="sresults"></div>
+  </div>
+  <div id="erafilter" title="Filter which players appear — by when their career began and ended. A player's whole career is always shown.">
+    <span class="cap">Era:</span>
+    <div class="erpresets">
+      <button type="button" data-b="0" data-e="0" class="on">All</button>
+      <button type="button" data-b="1947" data-e="0">Integration ’47+</button>
+      <button type="button" data-b="1959" data-e="0">Fully integrated ’59+</button>
+    </div>
+    <label class="erslide">debut ≥ <input type="range" id="eraStart" autocomplete="off"><b id="eraStartV">any</b></label>
+    <label class="erslide">final ≥ <input type="range" id="eraEnd" autocomplete="off"><b id="eraEndV">any</b></label>
   </div>
 </div>
 
@@ -277,6 +298,20 @@ P.forEach((p,k)=>{p.k=k;p.name=NM[p.i];p.n=p.y.length;
   for(let i=0;i<p.n;i++){p.pt.push(p.pt[i]+p.b[i]+p.w[i]);p.pb.push(p.pb[i]+p.b[i]);p.pw.push(p.pw[i]+p.w[i]);p.ps.push(p.ps[i]+p.s[i]);}
   p.runs=[];let s=0;for(let i=1;i<=p.n;i++){if(i===p.n||p.y[i]!==p.y[i-1]+1){p.runs.push([s,i-s]);s=i;}}});
 
+// ---- era filter: include a player by when their career STARTS and ENDS; their FULL career then counts ----
+let MIN_YEAR=Infinity,MAX_YEAR=-Infinity;
+for(const p of P){if(!p.n)continue;if(p.y[0]<MIN_YEAR)MIN_YEAR=p.y[0];if(p.y[p.n-1]>MAX_YEAR)MAX_YEAR=p.y[p.n-1];
+  let mr=0;for(const run of p.runs)if(run[1]>mr)mr=run[1];p.maxRun=mr;p.startY=p.y[0];p.endY=p.y[p.n-1];}
+let beginMin=MIN_YEAR,endMin=MIN_YEAR;          // include if career started >= beginMin AND ended >= endMin
+let clampWin=null;                              // assigned by the window-slider setup; called on era change
+const incl=p=>p.startY>=beginMin&&p.endY>=endMin;
+const eraOn=()=>beginMin>MIN_YEAR||endMin>MIN_YEAR;
+let curMaxN=M.maxN,curMaxSeason=M.maxSeason,curMaxCum=M.maxCum;
+function recomputeMaxes(){if(!eraOn()){curMaxN=M.maxN;curMaxSeason=M.maxSeason;curMaxCum=M.maxCum;return;}
+  let mn=1,ms=1,mc=0;for(const p of P){if(!incl(p))continue;
+    if(p.maxRun>mn)mn=p.maxRun;if(p.n>ms)ms=p.n;const c=p.pt[p.n];if(c>mc)mc=c;}
+  curMaxN=mn;curMaxSeason=ms;curMaxCum=mc||1;}
+
 // ---- highlight series (global) ----
 const series=[];
 ['Ohtani','Ruth','Bonds'].forEach(g=>series.push({k:M.starsIdx[g],name:g,color:STAR_COL[g],visible:true,star:true}));
@@ -307,12 +342,12 @@ sIn.addEventListener('input',()=>{const q=sIn.value.trim().toLowerCase();
 document.addEventListener('click',e=>{if(!e.target.closest('.searchbox'))sBox.style.display='none';});
 
 // ---- computations (cached) ----
-const winCache={};
+let winCache={};
 function windows(N){if(winCache[N])return winCache[N];const arr=[];
   // generate every sliding run, then greedily keep the best non-overlapping runs per player
-  for(const p of P)for(const run of p.runs){const s=run[0],l=run[1];if(l<N)continue;
+  for(const p of P){if(!incl(p))continue;for(const run of p.runs){const s=run[0],l=run[1];if(l<N)continue;
     for(let j=s;j<=s+l-N;j++)arr.push({k:p.k,j,tot:(p.pt[j+N]-p.pt[j])/N,b:(p.pb[j+N]-p.pb[j])/N,
-      w:(p.pw[j+N]-p.pw[j])/N,sz:(p.ps[j+N]-p.ps[j])/N,a:p.y[j],z:p.y[j+N-1]});}
+      w:(p.pw[j+N]-p.pw[j])/N,sz:(p.ps[j+N]-p.ps[j])/N,a:p.y[j],z:p.y[j+N-1]});}}
   arr.sort((a,b)=>b.tot-a.tot);
   const taken={},out=[];
   for(const d of arr){const t=taken[d.k]||(taken[d.k]=[]);let ok=true;
@@ -321,7 +356,7 @@ function windows(N){if(winCache[N])return winCache[N];const arr=[];
   out.forEach((d,i)=>d.rank=i+1);winCache[N]=out;return out;}
 let careerCache=null;
 function careers(){if(careerCache)return careerCache;
-  careerCache=P.filter(p=>p.n>=3).map(p=>{let b=0,w=0,s=0;for(let i=0;i<p.n;i++){b+=p.b[i];w+=p.w[i];s+=p.s[i];}
+  careerCache=P.filter(p=>p.n>=3&&incl(p)).map(p=>{let b=0,w=0,s=0;for(let i=0;i<p.n;i++){b+=p.b[i];w+=p.w[i];s+=p.s[i];}
     return {k:p.k,b:b/p.n,w:w/p.n,sz:s/p.n,tot:(b+w)/p.n,a:p.y[0],z:p.y[p.n-1],n:p.n};});
   careerCache.sort((a,b)=>b.tot-a.tot);careerCache.forEach((d,i)=>d.rank=i+1);return careerCache;}
 function cumOf(p){if(p._cum)return p._cum;const o=[];let c=0;for(let i=0;i<p.n;i++){c+=p.b[i]+p.w[i];o.push([i+1,c,p.a?p.a[i]:null]);}p._cum=o;return o;}
@@ -484,14 +519,14 @@ function LineChart(sel){
   function resize(){W=root.node().clientWidth;H=Math.max(380,Math.min(W*.56,560));
     const dpr=window.devicePixelRatio||1;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
     svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
-    x=d3.scaleLinear(xmode==='age'?[AGE_LO,AGE_HI]:[1,M.maxSeason],[m.l,W-m.r]);y=d3.scaleLinear([0,M.maxCum*1.03],[H-m.b,m.t]);
+    x=d3.scaleLinear(xmode==='age'?[AGE_LO,AGE_HI]:[1,curMaxSeason],[m.l,W-m.r]);y=d3.scaleLinear([0,curMaxCum*1.03],[H-m.b,m.t]);
     clipRect.attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Math.max(0,H-m.t-m.b));
     overlay.attr('x',m.l).attr('y',m.t).attr('width',W-m.l-m.r).attr('height',H-m.t-m.b);draw();}
   function draw(){
     ctx.clearRect(0,0,W,H);ctx.save();ctx.beginPath();ctx.rect(m.l,m.t,Math.max(0,W-m.l-m.r),Math.max(0,H-m.b-m.t));ctx.clip();
     ctx.strokeStyle=CLOUD;ctx.globalAlpha=.22;ctx.lineWidth=1;
     const vis=visibleKs();
-    for(const p of P){if(vis.has(p.k))continue;const c=cumOf(p);ctx.beginPath();let started=false;
+    for(const p of P){if(vis.has(p.k)||!incl(p))continue;const c=cumOf(p);ctx.beginPath();let started=false;
       for(let i=0;i<c.length;i++){const xx=xv(c[i]);if(xx==null){started=false;continue;}const px=x(xx),py=y(c[i][1]);started?ctx.lineTo(px,py):ctx.moveTo(px,py);started=true;}ctx.stroke();}
     ctx.globalAlpha=1;ctx.restore();
     gAx.selectAll('*').remove();
@@ -500,13 +535,13 @@ function LineChart(sel){
     gAx.selectAll('.domain').remove();
     gAx.append('text').attr('class','axlab').attr('x',(m.l+W-m.r)/2).attr('y',H-6).attr('text-anchor','middle').text(xmode==='age'?'Player age':'Season of career (1st, 2nd, 3rd …)');
     gAx.append('text').attr('class','axlab').attr('transform',`translate(13,${(m.t+H-m.b)/2}) rotate(-90)`).attr('text-anchor','middle').text('Cumulative WAR / 162');
-    const sp=series.filter(s=>s.visible).map(s=>({s,p:P[s.k],pts:cumOf(P[s.k])}));
+    const sp=series.filter(s=>s.visible&&incl(P[s.k])).map(s=>({s,p:P[s.k],pts:cumOf(P[s.k])}));
     gStar.selectAll('path').data(sp,d=>d.s.k).join('path').attr('fill','none').attr('stroke',d=>d.s.color).attr('stroke-width',2.4).style('pointer-events','none').attr('d',d=>gen()(d.pts));
     gLab.selectAll('*').remove();
     sp.forEach(d=>{const pts=d.pts.filter(pt=>xv(pt)!=null);if(!pts.length)return;const last=pts[pts.length-1],first=pts[0];
       gLab.append('text').attr('x',x(xv(last))+7).attr('y',y(last[1])).attr('dy','.32em').attr('fill',d.s.color).attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',12.5).style('pointer-events','none').text(`${d.s.name} (${Math.round(last[1])})`);
       gLab.append('circle').attr('cx',x(xv(first))).attr('cy',y(first[1])).attr('r',3).attr('fill',d.s.color).style('pointer-events','none');});
-    const nodes=[];for(const p of P){const c=cumOf(p);for(const pt of c){const xx=xv(pt);if(xx==null)continue;nodes.push({px:x(xx),py:y(pt[1]),p,pt});}}
+    const nodes=[];for(const p of P){if(!incl(p))continue;const c=cumOf(p);for(const pt of c){const xx=xv(pt);if(xx==null)continue;nodes.push({px:x(xx),py:y(pt[1]),p,pt});}}
     qt=d3.quadtree().x(n=>n.px).y(n=>n.py).addAll(nodes);}
   function move(ev){if(!qt)return;const pt=d3.pointer(ev,svg.node()),f=qt.find(pt[0],pt[1],28);
     gHi.selectAll('*').remove();if(!f){hideTip();return;}
@@ -518,7 +553,7 @@ function LineChart(sel){
   function click(ev){const pt=d3.pointer(ev,svg.node()),f=qt&&qt.find(pt[0],pt[1],28);if(f)addPlayer(f.p.k);}
   overlay.on('mousemove',move).on('mouseleave',()=>{hideTip();gHi.selectAll('*').remove();}).on('click',click);
   resize();let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(resize,150);});
-  listeners.push(draw);
+  listeners.push(resize);   // resize (not draw) so era-filter changes to curMaxCum/curMaxSeason rescale the axes
   return {setMode(mode){if(mode!==xmode){xmode=mode;resize();}}};
 }
 
@@ -541,12 +576,15 @@ const winLol=Lollipop('#l-window',{compute:()=>windows(curN),row:d=>({k:d.k,name
   maxVal:16,labelW:196,valName:'avg WAR/162',onPick:r=>winBubble.pin(r)});
 (function(){const slider=document.getElementById('winSlider'),nEl=document.getElementById('winN'),nLbl=document.getElementById('winNlbl'),play=document.getElementById('winPlay');
   slider.max=M.maxN;let raf=null;
-  function setN(N){curN=N;nEl.textContent=N;nLbl.textContent=N===1?'consecutive season':'consecutive seasons';
+  function lbl(N){nEl.textContent=N;nLbl.textContent=N===1?'consecutive season':'consecutive seasons';}
+  function setN(N){curN=N;lbl(N);
     if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{winBubble.redraw();winLol.redraw();});}
   slider.addEventListener('input',()=>setN(+slider.value));
+  // clamp the slider to the longest available run under the current era filter (no redraw — refreshEra redraws)
+  clampWin=function(){const mx=Math.max(1,curMaxN);slider.max=mx;if(+slider.value>mx)slider.value=mx;curN=+slider.value;lbl(curN);};
   let timer=null;play.addEventListener('click',()=>{if(timer){clearInterval(timer);timer=null;play.textContent='▶ Play';return;}
-    play.textContent='❚❚ Pause';if(+slider.value>=M.maxN)slider.value=1;
-    timer=setInterval(()=>{let v=+slider.value;if(v>=M.maxN){clearInterval(timer);timer=null;play.textContent='▶ Play';return;}slider.value=v+1;setN(v+1);},760);});
+    play.textContent='❚❚ Pause';if(+slider.value>=+slider.max)slider.value=1;
+    timer=setInterval(()=>{let v=+slider.value;if(v>=+slider.max){clearInterval(timer);timer=null;play.textContent='▶ Play';return;}slider.value=v+1;setN(v+1);},760);});
 })();
 
 const carTip=d=>`<div class="nm" style="color:${(seriesOf(d.k)||{}).color||'#111'}">${P[d.k].name}</div><div class="row">Career rank <b>#${d.rank}</b> · ${d.n} yr (${d.a}-${d.z})</div><div class="row">Bat ${d.b.toFixed(1)} · Pit ${d.w.toFixed(1)} · BsR ${d.sz.toFixed(1)} /yr</div>`;
@@ -561,14 +599,37 @@ const cumChart=LineChart('#c-cum');
   t.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
     t.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));cumChart.setMode(b.dataset.mode);});})();
 
-// ---- live: Ohtani's current-season all-time rank (computed from the data, not hard-coded) ----
-(function(){const ok=M.starsIdx.Ohtani,w1=windows(1);let e=null;
+// ---- live: Ohtani's current-season all-time rank (computed from the data, respects the era filter) ----
+function updateLiveRank(){const ok=M.starsIdx.Ohtani,w1=windows(1);let e=null;
   for(const d of w1)if(d.k===ok&&(!e||d.a>e.a))e=d;
-  if(!e)return;const set=(c,v)=>document.querySelectorAll('.'+c).forEach(n=>n.textContent=v);
-  set('js-oh-rank',e.rank);set('js-oh-war',e.tot.toFixed(1));set('js-oh-year',e.a);})();
+  const set=(c,v)=>document.querySelectorAll('.'+c).forEach(n=>n.textContent=v);
+  if(!e){set('js-oh-rank','—');set('js-oh-war','—');return;}
+  set('js-oh-rank',e.rank);set('js-oh-war',e.tot.toFixed(1));set('js-oh-year',e.a);}
+updateLiveRank();
+
+// ---- era-filter refresh: invalidate caches, recompute maxes, redraw everything ----
+function refreshEra(){winCache={};careerCache=null;for(const p of P)p._cum=null;
+  recomputeMaxes();if(clampWin)clampWin();listeners.forEach(f=>f());updateLiveRank();buildTable(true);}
+function setEra(bMin,eMin){bMin=Math.round(bMin);eMin=Math.round(eMin);
+  if(bMin===beginMin&&eMin===endMin)return;beginMin=bMin;endMin=eMin;refreshEra();}
+(function(){const sS=document.getElementById('eraStart'),sE=document.getElementById('eraEnd'),
+    vS=document.getElementById('eraStartV'),vE=document.getElementById('eraEndV'),
+    presets=[...document.querySelectorAll('.erpresets button')];
+  [sS,sE].forEach(s=>{s.min=MIN_YEAR;s.max=MAX_YEAR;s.step=1;s.value=MIN_YEAR;});
+  const bOf=b=>+b.dataset.b||MIN_YEAR,eOf=b=>+b.dataset.e||MIN_YEAR;
+  function lab(){vS.textContent=+sS.value<=MIN_YEAR?'any':sS.value;vE.textContent=+sE.value<=MIN_YEAR?'any':sE.value;
+    const b=+sS.value,e=+sE.value;presets.forEach(btn=>btn.classList.toggle('on',bOf(btn)===b&&eOf(btn)===e));}
+  let deb=null;
+  function onSlide(){lab();clearTimeout(deb);deb=setTimeout(()=>setEra(+sS.value,+sE.value),150);}
+  sS.addEventListener('input',onSlide);sE.addEventListener('input',onSlide);
+  presets.forEach(btn=>btn.onclick=()=>{sS.value=bOf(btn);sE.value=eOf(btn);lab();setEra(bOf(btn),eOf(btn));});
+  lab();
+})();
 
 // ---- ledger table (lazy) ----
-function buildTable(){const wrap=document.getElementById('c-table');if(wrap.dataset.done)return;wrap.dataset.done=1;
+function buildTable(force){const wrap=document.getElementById('c-table');
+  if(force){if(!wrap.dataset.done)return;wrap.dataset.done='';}   // rebuild only if already built; else leave for the lazy observer
+  if(wrap.dataset.done)return;wrap.dataset.done=1;
   const TN=20,per={};
   for(let N=1;N<=TN;N++){const arr=windows(N),seen=new Set();
     for(let i=0;i<arr.length;i++){const d=arr[i];if(seen.has(d.k))continue;seen.add(d.k);(per[d.k]||(per[d.k]={}))[N]=[d.rank,+d.tot.toFixed(1)];}}
