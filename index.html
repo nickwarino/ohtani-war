@@ -39,6 +39,7 @@
   .erslide input[type=range]{width:84px;height:4px;margin:0;}
   .erslide input[type=range]::-webkit-slider-thumb{width:14px;height:14px;border-width:2px;}
   .erslide b{color:var(--ohtani);min-width:28px;text-align:left;}
+  #pedfilter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-left:1px solid var(--line);padding-left:12px;}
   #legend{display:flex;gap:7px;flex-wrap:wrap;}
   .lg{font-family:var(--display);font-weight:bold;font-size:13px;border:1.5px solid var(--line);border-radius:30px;
       padding:4px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s;user-select:none;}
@@ -154,6 +155,14 @@
     </div>
     <label class="erslide">debut ≥ <input type="range" id="eraStart" autocomplete="off"><b id="eraStartV">any</b></label>
     <label class="erslide">final ≥ <input type="range" id="eraEnd" autocomplete="off"><b id="eraEndV">any</b></label>
+  </div>
+  <div id="pedfilter" title="Filter players linked to performance-enhancing drugs (Baseball Almanac steroid suspensions + ESPN). A player's whole career is kept or dropped.">
+    <span class="cap">PEDs:</span>
+    <div class="erpresets">
+      <button type="button" data-ped="both" class="on">Both</button>
+      <button type="button" data-ped="no">No PEDs</button>
+      <button type="button" data-ped="only">PEDs only</button>
+    </div>
   </div>
 </div>
 
@@ -273,7 +282,11 @@
      for separate peaks (e.g. Bonds' 2001–04 and his earlier 1990–93). A single season is just a run of length one.
      Bubble size is baserunning runs per 162; down-triangles mark negative baserunners. 2026 reflects the live season via the
      MLB Stats API.</p>
-  <p><b>Data:</b> Neil Paine · Baseball-Reference · FanGraphs · Lahman/SABR · MLB Stats API.<br>
+  <p><b>PED filter.</b> "Linked to PEDs" combines Baseball Almanac's steroid-suspension list (2005–present) with ESPN's
+     "notable players linked to PEDs." It reflects suspensions, admissions, the Mitchell Report, and reporting — not proof of
+     on-field effect; included only as a lens, not a verdict. Toggling <em>No PEDs</em>/<em>PEDs only</em> keeps or drops each
+     flagged player's entire career.</p>
+  <p><b>Data:</b> Neil Paine · Baseball-Reference · FanGraphs · Lahman/SABR · MLB Stats API · Baseball Almanac · ESPN.<br>
      <b>Created by Nick Warino + Claude Code w/ Opus 4.8.</b></p>
 </footer>
 <div id="tip"></div>
@@ -304,8 +317,18 @@ for(const p of P){if(!p.n)continue;if(p.y[0]<MIN_YEAR)MIN_YEAR=p.y[0];if(p.y[p.n
   let mr=0;for(const run of p.runs)if(run[1]>mr)mr=run[1];p.maxRun=mr;p.startY=p.y[0];p.endY=p.y[p.n-1];}
 let beginMin=MIN_YEAR,endMin=MIN_YEAR;          // include if career started >= beginMin AND ended >= endMin
 let clampWin=null;                              // assigned by the window-slider setup; called on era change
-const incl=p=>p.startY>=beginMin&&p.endY>=endMin;
-const eraOn=()=>beginMin>MIN_YEAR||endMin>MIN_YEAR;
+
+// ---- PED associations: Baseball Almanac (steroid suspensions) + ESPN ("notable players linked to PEDs") ----
+const PED_NAMES=["Abraham Almonte","Adalberto Mondesí","Agustín Montero","Alec Asher","Alex Colomé","Alex Rodriguez","Alex Sanchez","Andrew McKirahan","Andy Pettitte","Antonio Bastardo","Barry Bonds","Bartolo Colón","Benito Santiago","Bret Boone","Brian Roberts","Carlos Almánzar","Carlos Martínez","Chris Colabello","Chuck Finley","Chuck Knoblauch","Cody Stanley","Dan Serafini","Daniel Stumpf","David Justice","David Ortiz","David Paulino","David Rollins","Dee Strange-Gordon","Edgar Santana","Edinson Vólquez","Eliézer Alfonzo","Emmanuel Clase","Eric Skoglund","Ervin Santana","Everth Cabrera","Fautino De Los Santos","Fernando Martínez","Fernando Tatis Jr.","Francis Martes","Francisco Cervelli","Frankie Montas","Freddy Galvis","Félix Heredia","Gary Sheffield","Gregory Santos","Guillermo Mota","Héctor Santiago","Iván Rodríguez","J.C. Mejía","J.C. Romero","Jamal Strong","Jason Giambi","Jason Grimsley","Jay Gibbons","Jenrry Mejía","Jesús Montero","Jhonny Peralta","Johan Rojas","Jordan Norberto","Jordany Valdespin","Jorge Bonifacio","Jorge Piedra","Jorge Polanco","Josh Ravin","José Alvarado","José Canseco","José Guillén","Juan González","Juan Rincón","Juan Salas","Jurickson Profar","Ken Caminiti","Kevin Brown","Lenny Dykstra","Magglio Ordóñez","Manny Ramirez","Mark McGwire","Marlon Byrd","Matt Lawton","Matt Williams","Max Kepler","Melky Cabrera","Michael Pineda","Miguel Tejada","Mike Cameron","Mike Jacobs","Mike Marjama","Mike Morse","Mo Vaughn","Neifi Pérez","Nelson Cruz","Noelvi Marte","Orelvis Martinez","Pablo Ozuna","Paul Campbell","Pedro Severino","Rafael Betancourt","Rafael Palmeiro","Ramón Laureano","Raudy Read","Robinson Canó","Roger Clemens","Ronny Paulino","Ryan Braun","Ryan Franklin","Ryan Jorgensen","Sammy Sosa","Sergio Escalona","Sergio Mitre","Starling Marte","Steven Wright","Tim Beckham","Troy Glaus","Troy Patton","Victor Alcántara","Wally Joyner","Welington Castillo","Yasmani Grandal","Éric Gagné"];
+const bestByName={};
+for(const p of P){const b=bestByName[p.name];if(b===undefined||p.n>P[b].n)bestByName[p.name]=p.k;}
+const PED=new Set();
+for(const nm of PED_NAMES){const k=bestByName[nm];if(k!==undefined)PED.add(k);}
+let pedMode='both';   // 'both' | 'no' (exclude PED) | 'only' (PED only)
+const pedPass=p=>pedMode==='both'||(pedMode==='only')===PED.has(p.k);
+
+const incl=p=>p.startY>=beginMin&&p.endY>=endMin&&pedPass(p);
+const eraOn=()=>beginMin>MIN_YEAR||endMin>MIN_YEAR||pedMode!=='both';
 let curMaxN=M.maxN,curMaxSeason=M.maxSeason,curMaxCum=M.maxCum;
 function recomputeMaxes(){if(!eraOn()){curMaxN=M.maxN;curMaxSeason=M.maxSeason;curMaxCum=M.maxCum;return;}
   let mn=1,ms=1,mc=0;for(const p of P){if(!incl(p))continue;
@@ -615,7 +638,7 @@ function setEra(bMin,eMin){bMin=Math.round(bMin);eMin=Math.round(eMin);
   if(bMin===beginMin&&eMin===endMin)return;beginMin=bMin;endMin=eMin;refreshEra();}
 (function(){const sS=document.getElementById('eraStart'),sE=document.getElementById('eraEnd'),
     vS=document.getElementById('eraStartV'),vE=document.getElementById('eraEndV'),
-    presets=[...document.querySelectorAll('.erpresets button')];
+    presets=[...document.querySelectorAll('#erafilter .erpresets button')];
   [sS,sE].forEach(s=>{s.min=MIN_YEAR;s.max=MAX_YEAR;s.step=1;s.value=MIN_YEAR;});
   const bOf=b=>+b.dataset.b||MIN_YEAR,eOf=b=>+b.dataset.e||MIN_YEAR;
   function lab(){vS.textContent=+sS.value<=MIN_YEAR?'any':sS.value;vE.textContent=+sE.value<=MIN_YEAR?'any':sE.value;
@@ -626,6 +649,9 @@ function setEra(bMin,eMin){bMin=Math.round(bMin);eMin=Math.round(eMin);
   presets.forEach(btn=>btn.onclick=()=>{sS.value=bOf(btn);sE.value=eOf(btn);lab();setEra(bOf(btn),eOf(btn));});
   lab();
 })();
+function setPed(mode){if(mode===pedMode)return;pedMode=mode;refreshEra();}
+(function(){const btns=[...document.querySelectorAll('#pedfilter button')];
+  btns.forEach(b=>b.onclick=()=>{btns.forEach(x=>x.classList.toggle('on',x===b));setPed(b.dataset.ped);});})();
 
 // ---- ledger table (lazy) ----
 function buildTable(force){const wrap=document.getElementById('c-table');
