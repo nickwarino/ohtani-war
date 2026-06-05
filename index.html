@@ -143,7 +143,7 @@
   <h2 class="reveal">Where Greatness Lives</h2>
   <p class="reveal">Every MLB player-season by batting vs pitching WAR per 162. <span class="b">Bonds</span> hugs the
      hitting axis; <span class="r">Ruth</span> drifts from pitching to hitting; <span class="o">Ohtani</span> lives
-     in the empty upper-right. <em>Hover any dot, click a name above to isolate it, or search anyone in.</em></p>
+     in the empty upper-right. <em>Hover any dot, click the names above to toggle any combination on or off, or search anyone in.</em></p>
   <div class="stats reveal">
     <div class="stat"><div class="big">1</div><div class="lbl">Ruth's seasons in Ohtani's two-way zone — 1918, and only 1918</div></div>
     <div class="stat"><div class="big">+3.3</div><div class="lbl">Ohtani's baserunning runs / 162 — Ruth was −1.1, Bonds +1.9</div></div>
@@ -267,14 +267,13 @@ function visibleKs(){return new Set(series.filter(s=>s.visible).map(s=>s.k));}
 function seriesOf(k){return series.find(s=>s.k===k);}
 function addPlayer(k){const e=seriesOf(k);if(e)e.visible=true;
   else series.push({k,name:P[k].name,color:PALETTE[palI++%PALETTE.length],visible:true});emit();}
-function soloToggle(k){const v=series.filter(s=>s.visible);
-  if(v.length===1&&v[0].k===k)series.forEach(s=>s.visible=true);else series.forEach(s=>s.visible=(s.k===k));emit();}
+function toggleVis(k){const e=seriesOf(k);if(e){e.visible=!e.visible;emit();}}
 function removePlayer(k){const i=series.findIndex(s=>s.k===k);if(i>=0&&!series[i].star){series.splice(i,1);emit();}}
 
 function renderLegend(){const el=document.getElementById('legend');el.innerHTML='';
   series.forEach(s=>{const c=document.createElement('span');c.className='lg'+(s.visible?'':' off');
     c.innerHTML=`<i style="background:${s.color}"></i>${s.name}`+(s.star?'':' <b class="x">×</b>');
-    c.onclick=e=>{if(e.target.classList.contains('x'))removePlayer(s.k);else soloToggle(s.k);};el.appendChild(c);});
+    c.onclick=e=>{if(e.target.classList.contains('x'))removePlayer(s.k);else toggleVis(s.k);};el.appendChild(c);});
   const g=document.createElement('span');g.className='lg static';g.innerHTML=`<i style="background:${CLOUD}"></i>everyone else`;el.appendChild(g);}
 
 // ---- search ----
