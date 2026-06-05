@@ -141,25 +141,34 @@
 <section id="map">
   <div class="eyebrow reveal">01 — The Two-Way Map</div>
   <h2 class="reveal">Where Greatness Lives</h2>
-  <p class="reveal">Every MLB player-season by batting vs pitching WAR per 162. <span class="b">Bonds</span> hugs the
-     hitting axis; <span class="r">Ruth</span> drifts from pitching to hitting; <span class="o">Ohtani</span> lives
-     in the empty upper-right. <em>Hover any dot, click the names above to toggle any combination on or off, or search anyone in.</em></p>
+  <p class="reveal"><span class="o">Ohtani's</span> <span class="js-oh-year">2026</span> season ranks
+     <strong>#<span class="js-oh-rank">—</span></strong> all-time at <strong><span class="js-oh-war">—</span></strong> WAR
+     per 162 — and raw output is only half the story: no one else matches his multi-dimensional dominance. The charts below
+     plot every MLB player-season by WAR per 162; the scatterplots map <strong>batting vs pitching WAR per 162</strong>, sized
+     by baserunning. <span class="b">Bonds</span> hugs the hitting axis, <span class="r">Ruth</span> drifts from pitching to
+     hitting, and <span class="o">Ohtani</span> lives almost alone in the empty upper-right.</p>
+  <p class="reveal"><em>Hover any dot, click the names above to toggle any combination on or off, or search anyone in.</em></p>
   <div class="stats reveal">
-    <div class="stat"><div class="big">1</div><div class="lbl">Ruth's seasons in Ohtani's two-way zone — 1918, and only 1918</div></div>
+    <div class="stat"><div class="big">#<span class="js-oh-rank">—</span></div><div class="lbl">where Ohtani's <span class="js-oh-year">2026</span> ranks among all single seasons ever (<span class="js-oh-war">—</span> WAR/162)</div></div>
     <div class="stat"><div class="big">+3.3</div><div class="lbl">Ohtani's baserunning runs / 162 — Ruth was −1.1, Bonds +1.9</div></div>
-    <div class="stat"><div class="big">#6</div><div class="lbl">where Ohtani's 2026 ranks among all single seasons ever</div></div>
+    <div class="stat"><div class="big">1</div><div class="lbl">Ruth's seasons in Ohtani's two-way zone — 1918, and only 1918</div></div>
   </div>
-  <p class="reveal">And he runs. Bubble size is <strong>baserunning runs per 162</strong> — Ohtani's are big circles; negative
-     baserunners show as down-triangles. Where <span class="r">Ruth</span> was station-to-station (−1.1 BsR/162) and even
-     <span class="b">Bonds</span> only +1.9, <span class="o">Ohtani</span> adds <strong>+3.3</strong> on the bases — a third
-     dimension neither rival owned. <span class="r">Ruth</span> touched Ohtani's two-way quadrant exactly once, in
-     <strong>1918</strong> (6.4 batting / 3.0 pitching WAR); every other Ruth season was a pitcher's or a slugger's, never
-     both at once. Ohtani has lived there for years.</p>
-  <p class="reveal">So the honest yardstick isn't greatness <em>summed</em> — on totals, Ruth and Bonds win, and this page won't
-     pretend otherwise. It's greatness <em>multiplied</em> by originality: the <em>area</em> a career covers, not just its
-     height. Bonds was the greatest pure hitter; Ruth the greatest hitter who once pitched; <span class="o">Ohtani</span> is
-     elite along axes no one else occupies simultaneously. If you want one phrase for greatness × uniqueness, call it
-     <strong>singular greatness</strong> — a category of one.</p>
+  <p class="reveal"><span class="r">Ruth</span> is the only player to dominate <strong>both sides of the ball</strong> — but he
+     did it in a single season; <span class="o">Ohtani</span> has done it across several. And unlike Ruth, Ohtani can run. In
+     the scatterplots, bubble size is <strong>baserunning runs per 162</strong> — Ohtani's are big circles; negative baserunners
+     show as down-triangles. Ruth was station-to-station (−1.1 BsR/162) and even <span class="b">Bonds</span> only +1.9;
+     <span class="o">Ohtani</span> adds <strong>+3.3</strong> on the bases. Ruth entered Ohtani's two-way quadrant exactly once,
+     in <strong>1918</strong> (6.4 batting / 3.0 pitching WAR); every other year he was either a pitcher or a slugger, never both
+     at once. Ohtani has lived there for years — and out-did Bonds' once-singular power-speed peak too, most recently with
+     <strong>54 HR and 59 SB in 2024</strong>.</p>
+  <p class="reveal">Ohtani may never match Ruth's best season or career WAR — but much of that gap is circumstance, not talent.
+     Ruth feasted on a segregated league that hadn't yet learned to hit home runs in bulk; <span class="o">Ohtani</span> does it
+     against the hardest-throwing, nastiest pitching the sport has ever seen, and his two-way game only reached MLB late. From
+     <strong>2021 through 2026</strong>, in most seasons in baseball history his bat alone would have been among the best in the
+     game — and his arm would have been too, in the same year.</p>
+  <p class="reveal"><span class="r">Ruth</span> and <span class="b">Bonds</span> win on raw WAR totals. But by the measure that
+     matters most — how fully a player turns once-in-history talent into production no one else can touch — <span class="o">Ohtani</span>
+     is the <strong>greatest of all time</strong>. Singular greatness: a category of one.</p>
   <div class="combo reveal">
     <div class="lolli"><div class="panel-h">Best single seasons · WAR/162 · scroll for more ↓</div><div id="l-map"></div></div>
     <div><div class="panel-h">Every player-season</div><div class="chart" id="c-map"></div></div>
@@ -360,16 +369,32 @@ function ScatterView(sel,opts){
       .attr('d',d=>{const r=Math.max(3.5,R(opts.sz?opts.sz(d):0));
         return symb.type(neg(d)?d3.symbolTriangle:d3.symbolCircle).size(neg(d)?r*r*2.4:Math.PI*r*r)();})
       .attr('fill',d=>(seriesOf(d.k)||{}).color||'#444');
-    const fs=opts.labSize||11,cw=fs*0.55,placed=[];
-    const labData=labels.map(d=>({d,lx:x(opts.px(d))+Math.max(4,R(opts.sz?opts.sz(d):0))+3,ly:y(opts.py(d))+4,txt:opts.labelText(d)}))
-      .sort((a,b)=>b.d.tot-a.d.tot)
-      .filter(o=>{const r={x:o.lx,y:o.ly-fs,w:o.txt.length*cw+2,h:fs+2};
-        for(const p of placed)if(r.x<p.x+p.w&&p.x<r.x+r.w&&r.y<p.y+p.h&&p.y<r.y+r.h)return false;
-        placed.push(r);return true;});
-    const ls=gLab.selectAll('text').data(labData,o=>o.d.k+'_'+o.d.a+'_'+o.d.z);
+    // labels: keep every highlighted bubble's label visible by nudging collisions apart and drawing a leader stem
+    const fs=opts.labSize||11,cw=fs*0.58,lh=fs+2.5,pL=m.l,pR=W-m.r,pT=m.t,pB=H-m.b,placed=[];
+    const items=labels.map(d=>{const cx=x(opts.px(d)),cy=y(opts.py(d)),r=Math.max(4,R(opts.sz?opts.sz(d):0));
+        return {key:d.k+'_'+d.a+'_'+d.z,cx,cy,r,txt:opts.labelText(d),col:(seriesOf(d.k)||{}).color||'#444',tot:d.tot};})
+      .sort((a,b)=>b.tot-a.tot);
+    const lab=[];
+    for(const it of items){const w=it.txt.length*cw+3;let best=null;
+      for(const side of [1,-1]){const tx=it.cx+side*(it.r+4),rx=side>0?tx:tx-w;
+        if(rx<pL||rx+w>pR)continue;
+        for(let s=0;s<=34&&!best;s++){const off=(s%2?-1:1)*Math.ceil(s/2)*lh,vc=it.cy+off;
+          if(vc-fs/2<pT||vc+fs/2>pB)continue;
+          const rect={x:rx,y:vc-fs/2-1,w,h:fs+2};let ok=true;
+          for(const p of placed)if(rect.x<p.x+p.w&&p.x<rect.x+rect.w&&rect.y<p.y+p.h&&p.y<rect.y+rect.h){ok=false;break;}
+          if(ok)best={tx,vc,side,off,rect};}
+        if(best)break;}
+      if(!best)continue;placed.push(best.rect);
+      lab.push({key:it.key,col:it.col,txt:it.txt,tx:best.tx,vc:best.vc,anchor:best.side>0?'start':'end',
+        ax:it.cx+best.side*it.r,ay:it.cy,stem:Math.abs(best.off)>2});}
+    const lns=gLab.selectAll('line.lead').data(lab.filter(o=>o.stem),o=>o.key);
+    lns.exit().remove();
+    lns.enter().append('line').attr('class','lead').style('pointer-events','none').attr('stroke-width',0.8).attr('opacity',0.5)
+      .merge(lns).attr('x1',o=>o.ax).attr('y1',o=>o.ay).attr('x2',o=>o.tx).attr('y2',o=>o.vc).attr('stroke',o=>o.col);
+    const ls=gLab.selectAll('text.lab').data(lab,o=>o.key);
     ls.exit().remove();
-    ls.enter().append('text').attr('font-family',FONT).attr('font-weight','bold').style('pointer-events','none').attr('font-size',fs)
-      .merge(ls).attr('x',o=>o.lx).attr('y',o=>o.ly).attr('fill',o=>(seriesOf(o.d.k)||{}).color||'#444').text(o=>o.txt);
+    ls.enter().append('text').attr('class','lab').attr('font-family',FONT).attr('font-weight','bold').style('pointer-events','none').attr('font-size',fs).attr('dy','.32em')
+      .merge(ls).attr('x',o=>o.tx).attr('y',o=>o.vc).attr('text-anchor',o=>o.anchor).attr('fill',o=>o.col).text(o=>o.txt);
     buildQt();drawPin();}
   function buildQt(){const nodes=[];
     for(const d of cloud)nodes.push({px:x(opts.px(d)),py:y(opts.py(d)),d,hi:false});
@@ -514,6 +539,12 @@ Lollipop('#l-career',{compute:()=>careers(),row:d=>({k:d.k,name:P[d.k].name,val:
   maxVal:9.5,labelW:210,valName:'WAR/season',onPick:r=>carBubble.pin(r)});
 
 LineChart('#c-cum');
+
+// ---- live: Ohtani's current-season all-time rank (computed from the data, not hard-coded) ----
+(function(){const ok=M.starsIdx.Ohtani,w1=windows(1);let e=null;
+  for(const d of w1)if(d.k===ok&&(!e||d.a>e.a))e=d;
+  if(!e)return;const set=(c,v)=>document.querySelectorAll('.'+c).forEach(n=>n.textContent=v);
+  set('js-oh-rank',e.rank);set('js-oh-war',e.tot.toFixed(1));set('js-oh-year',e.a);})();
 
 // ---- ledger table (lazy) ----
 function buildTable(){const wrap=document.getElementById('c-table');if(wrap.dataset.done)return;wrap.dataset.done=1;
