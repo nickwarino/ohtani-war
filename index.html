@@ -307,9 +307,13 @@
       <button type="button" data-mode="season" class="on">Season of career</button>
       <button type="button" data-mode="age">Player age</button>
     </div>
+    <div class="xtoggle" id="arcFacet" role="group" aria-label="Layout">
+      <button type="button" data-facet="0" class="on">Overlay</button>
+      <button type="button" data-facet="1">Faceted</button>
+    </div>
   </div>
   <div class="chart reveal" id="c-cum"></div>
-  <figcaption class="reveal"><strong>Cumulative</strong>: WAR/162 added up over a career. <strong>Per season</strong>: each season on its own, so you see the shape of a peak rise and fall. <strong>Best seasons</strong>: every highlighted player's seasons as bars, ranked best to worst, to compare how deep the greatness runs. For the two line views, <strong>hover to slice the field</strong> (top 10 at that point, plus any highlighted player); plot by season of career or by player age. (Ruth opens with a −0.1 rookie year.)</figcaption>
+  <figcaption class="reveal"><strong>Cumulative</strong>: WAR/162 added up over a career. <strong>Per season</strong>: each season on its own, so you see the shape of a peak rise and fall. <strong>Best seasons</strong>: every highlighted player's seasons as bars, ranked best to worst, to compare how deep the greatness runs. For the two line views, <strong>hover to slice the field</strong> (top 10 at that point, plus any highlighted player); plot by season of career or by player age, and <strong>overlay</strong> everyone on one chart or <strong>facet</strong> into one mini-chart per player. (Ruth opens with a −0.1 rookie year.)</figcaption>
 </section>
 <div class="divider"></div>
 
@@ -623,7 +627,7 @@ function LineChart(sel){
   const gAx=svg.append('g'),gStar=svg.append('g').attr('clip-path',cp),gBars=svg.append('g').attr('clip-path',cp),gLab=svg.append('g');
   const gSlice=svg.append('g').style('pointer-events','none');
   const overlay=svg.append('rect').attr('fill','transparent').style('pointer-events','all').style('cursor','crosshair');
-  let W,H,x,y,qt=null,xmode='season',shape='cumulative';const m={t:14,r:64,b:42,l:48};
+  let W,H,x,y,qt=null,xmode='season',shape='cumulative',facet=false;const m={t:14,r:64,b:42,l:48};
   const AGE_LO=18,AGE_HI=44;
   // per-season WAR/162 extent across everyone (filter-independent, so the axis stays stable)
   let PER_MIN=0,PER_MAX=1;for(const p of P)for(let i=0;i<p.n;i++){const v=p.b[i]+p.w[i];if(v>PER_MAX)PER_MAX=v;if(v<PER_MIN)PER_MIN=v;}
@@ -635,7 +639,12 @@ function LineChart(sel){
   const yLab=()=>shape==='cumulative'?'Cumulative WAR / 162':'WAR / 162 (single season)';
   const fmtV=v=>shape==='cumulative'?Math.round(v):v.toFixed(1);
   const visSeries=()=>series.filter(s=>s.visible&&incl(P[s.k]));
+  const FCAP=12,fcols=()=>W<560?1:(W<880?2:3);            // faceting: cap + responsive column count
+  function domains(){return {xd:xmode==='age'?[AGE_LO,AGE_HI]:[1,curMaxSeason],
+    yd:shape==='cumulative'?[0,curMaxCum*1.03]:[Math.max(-5,Math.min(0,PER_MIN)),Math.min(18,PER_MAX*1.05)]};}
+  const faceting=()=>facet&&shape!=='best';
   function resize(){W=root.node().clientWidth;H=Math.max(380,Math.min(W*.56,560));
+    if(faceting()){const k=Math.min(FCAP,visSeries().length||1),rows=Math.ceil(k/fcols());H=Math.max(340,m.t+m.b+rows*162);}
     const dpr=window.devicePixelRatio||1;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
     svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
     clipRect.attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Math.max(0,H-m.t-m.b));
@@ -652,7 +661,8 @@ function LineChart(sel){
   function draw(){
     ctx.clearRect(0,0,W,H);
     gAx.selectAll('*').remove();gStar.selectAll('*').remove();gBars.selectAll('*').remove();gLab.selectAll('*').remove();gSlice.selectAll('*').remove();
-    overlay.style('pointer-events',shape==='best'?'none':'all');
+    overlay.style('pointer-events',(shape==='best'||faceting())?'none':'all');
+    if(faceting()){drawFacets();return;}
     const bottomAx=gAx.append('g').attr('transform',`translate(0,${H-m.b})`);
     if(shape==='best'){const dom=x.domain();bottomAx.call(d3.axisBottom(x).tickValues(dom.length<=16?dom:dom.filter(d=>d%2===1)).tickSize(0).tickPadding(8).tickFormat(d3.format('d')));}
     else bottomAx.call(d3.axisBottom(x).ticks(xmode==='age'?10:8).tickSize(0).tickPadding(8).tickFormat(d3.format('d')));
@@ -695,12 +705,41 @@ function LineChart(sel){
     sp.forEach((s,i)=>{const ly=m.t+6+i*16,lx=W-m.r-8;
       gLab.append('rect').attr('x',lx-9).attr('y',ly-7).attr('width',9).attr('height',9).attr('rx',2).attr('fill',s.color);
       gLab.append('text').attr('x',lx-13).attr('y',ly).attr('dy','.32em').attr('text-anchor','end').attr('font-family',"'Gill Sans',sans-serif").attr('font-weight','bold').attr('font-size',11.5).attr('fill',s.color).text(s.name);});}
+  // ---- faceted (small multiples): one mini-chart per highlighted player, the faint field behind each ----
+  function drawFacets(){const all=visSeries();
+    if(!all.length){gLab.append('text').attr('x',(m.l+W-m.r)/2).attr('y',(m.t+H-m.b)/2).attr('text-anchor','middle').attr('font-family',"'Gill Sans',sans-serif").attr('font-size',14).attr('fill','#9AA0A8').text('Toggle players on in the legend to see one mini-chart each.');return;}
+    const list=all.slice(0,FCAP),{xd,yd}=domains(),cols=fcols(),rows=Math.ceil(list.length/cols),gx=16,gy=14,nameH=15;
+    const aL=m.l,aT=m.t,aR=W-m.r,aB=H-m.b;
+    const cellW=(aR-aL-(cols-1)*gx)/cols,cellH=((aB-aT)-(rows-1)*gy)/rows;
+    gAx.append('text').attr('class','axlab').attr('x',(aL+aR)/2).attr('y',H-6).attr('text-anchor','middle').text(xmode==='age'?'Player age':'Season of career (1st, 2nd, 3rd …)');
+    gAx.append('text').attr('class','axlab').attr('transform',`translate(13,${(aT+aB)/2}) rotate(-90)`).attr('text-anchor','middle').text(yLab());
+    // sample the background field once (~2k strands) so 12 panels stay snappy with ~19k players
+    const cloudP=[];for(const p of P)if(incl(p))cloudP.push(p);
+    const stride=Math.max(1,Math.ceil(cloudP.length/2000));
+    list.forEach((s,idx)=>{const ci=idx%cols,ri=Math.floor(idx/cols);
+      const cx=aL+ci*(cellW+gx),cy=aT+ri*(cellH+gy),px0=cx,px1=cx+cellW,py0=cy+nameH,py1=cy+cellH;
+      const xs=v=>px0+(v-xd[0])/(xd[1]-xd[0])*(px1-px0),ys=v=>py1-(v-yd[0])/(yd[1]-yd[0])*(py1-py0);
+      ctx.save();ctx.beginPath();ctx.rect(px0,py0,Math.max(0,px1-px0),Math.max(0,py1-py0));ctx.clip();
+      ctx.strokeStyle=CLOUD;ctx.globalAlpha=.16;ctx.lineWidth=1;
+      for(let pi=0;pi<cloudP.length;pi+=stride){const p=cloudP[pi];if(p.k===s.k)continue;const c=dataOf(p);ctx.beginPath();let st=false;
+        for(let i=0;i<c.length;i++){const xx=xv(c[i]);if(xx==null){st=false;continue;}const X=xs(xx),Y=ys(c[i][1]);st?ctx.lineTo(X,Y):ctx.moveTo(X,Y);st=true;}ctx.stroke();}
+      ctx.globalAlpha=1;ctx.restore();
+      gStar.append('rect').attr('x',px0).attr('y',py0).attr('width',Math.max(0,px1-px0)).attr('height',Math.max(0,py1-py0)).attr('fill','none').attr('stroke','#E7EBF1').style('pointer-events','none');
+      if(shape!=='cumulative'){const zy=ys(0);if(zy>=py0&&zy<=py1)gStar.append('line').attr('x1',px0).attr('x2',px1).attr('y1',zy).attr('y2',zy).attr('stroke','#EFF2F6').style('pointer-events','none');}
+      const pts=dataOf(P[s.k]).filter(pt=>xv(pt)!=null);
+      if(pts.length){let d='';pts.forEach((pt,i)=>{d+=(i?'L':'M')+xs(xv(pt)).toFixed(1)+' '+ys(pt[1]).toFixed(1);});
+        gStar.append('path').attr('d',d).attr('fill','none').attr('stroke',s.color).attr('stroke-width',2).style('pointer-events','none');
+        pts.forEach(pt=>gStar.append('circle').attr('cx',xs(xv(pt))).attr('cy',ys(pt[1])).attr('r',2.3).attr('fill',s.color).attr('stroke','#fff').attr('stroke-width',.8).style('cursor','pointer')
+          .on('mousemove',e=>showTip(`<div class="nm" style="color:${s.color}">${s.name}</div><div class="row">${xmode==='age'?'Age '+pt[2]:'Season '+pt[0]} · <b>${fmtV(pt[1])}</b> WAR/162</div>`,e.clientX,e.clientY)).on('mouseleave',hideTip));
+        gLab.append('text').attr('x',px0+1).attr('y',cy+11).attr('fill',s.color).attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',12).text(`${s.name} (${fmtV(pts[pts.length-1][1])})`);
+      }else gLab.append('text').attr('x',px0+1).attr('y',cy+11).attr('fill',s.color).attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',12).text(s.name);});
+    if(all.length>FCAP)gLab.append('text').attr('x',aR).attr('y',aT-2).attr('text-anchor','end').attr('font-family',"'Gill Sans',sans-serif").attr('font-size',11).attr('fill','#9AA0A8').text(`showing ${FCAP} of ${all.length}`);}
   // value of a player at career-season number (or age) xq for the active line view; null if not active then
   function valAt(p,xq){const c=dataOf(p);
     if(xmode==='age'){for(let i=0;i<c.length;i++){if(c[i][2]===xq)return c[i][1];if(c[i][2]>xq)break;}return null;}
     return (xq>=1&&xq<=c.length)?c[xq-1][1]:null;}
   let sliceRAF=null,lastMX=null;
-  function move(ev){if(shape==='best')return;lastMX=d3.pointer(ev,svg.node())[0];
+  function move(ev){if(shape==='best'||faceting())return;lastMX=d3.pointer(ev,svg.node())[0];
     if(sliceRAF)return;sliceRAF=requestAnimationFrame(()=>{sliceRAF=null;drawSlice(lastMX);});}
   function drawSlice(mx){gSlice.selectAll('*').remove();hideTip();
     const lo=xmode==='age'?AGE_LO:1,hi=xmode==='age'?AGE_HI:curMaxSeason;
@@ -725,11 +764,12 @@ function LineChart(sel){
       gTxt.append('text').attr('x',labX).attr('y',it.dy).attr('dy','.32em').attr('text-anchor',anchor).attr('font-family',"'Gill Sans',sans-serif").attr('font-size',fs).attr('font-weight',it.col?'bold':'normal').attr('fill',c).text(`${it.rank}. ${it.name} ${fmtV(it.v)}`);}
     const bb=gTxt.node().getBBox();
     card.attr('x',bb.x-6).attr('y',bb.y-3).attr('width',bb.width+12).attr('height',bb.height+6);}
-  function click(ev){if(shape==='best')return;const pt=d3.pointer(ev,svg.node()),f=qt&&qt.find(pt[0],pt[1],28);if(f)addPlayer(f.p.k);}
+  function click(ev){if(shape==='best'||faceting())return;const pt=d3.pointer(ev,svg.node()),f=qt&&qt.find(pt[0],pt[1],28);if(f)addPlayer(f.p.k);}
   overlay.on('mousemove',move).on('mouseleave',()=>{hideTip();gSlice.selectAll('*').remove();}).on('click',click);
   resize();let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(resize,150);});
   listeners.push(resize);   // resize (not draw) so era-filter changes to curMaxCum/curMaxSeason rescale the axes
-  return {setMode(mode){if(mode!==xmode){xmode=mode;resize();}},setShape(s){if(s!==shape){shape=s;resize();}}};
+  return {setMode(mode){if(mode!==xmode){xmode=mode;resize();}},setShape(s){if(s!==shape){shape=s;resize();}},
+    setFacet(f){if(f!==facet){facet=f;resize();}}};
 }
 
 // ================= instantiate =================
@@ -809,13 +849,17 @@ function applyCareerMode(mode){if(mode===careerMode)return;careerMode=mode;caree
     t.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));applyCareerMode(b.dataset.mode);});})();
 
 const cumChart=LineChart('#c-cum');
-(function(){const vt=document.getElementById('arcView'),xt=document.getElementById('arcX');if(!vt)return;
+(function(){const vt=document.getElementById('arcView'),xt=document.getElementById('arcX'),ft=document.getElementById('arcFacet');if(!vt)return;
+  const dim=(el,off)=>{el.style.opacity=off?0.4:1;el.style.pointerEvents=off?'none':'';};
   vt.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
     vt.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
-    const shape=b.dataset.shape;cumChart.setShape(shape);
-    const bars=shape==='best';xt.style.opacity=bars?0.4:1;xt.style.pointerEvents=bars?'none':'';xt.title=bars?'Bars are ranked by best season; the x-axis choice applies to the line views.':'';});
+    const bars=b.dataset.shape==='best';cumChart.setShape(b.dataset.shape);
+    dim(xt,bars);dim(ft,bars);   // both the x-axis and facet choices only apply to the line views
+    xt.title=bars?'Bars are ranked by best season; the x-axis choice applies to the line views.':'';});
   xt.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-    xt.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));cumChart.setMode(b.dataset.mode);});})();
+    xt.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));cumChart.setMode(b.dataset.mode);});
+  ft.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    ft.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));cumChart.setFacet(b.dataset.facet==='1');});})();
 
 // ---- live: Ohtani's current-season all-time rank (computed from the data, respects the era filter) ----
 function updateLiveRank(){const ok=M.starsIdx.Ohtani,w1=windows(1);let e=null;
