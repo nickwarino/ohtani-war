@@ -116,6 +116,7 @@
     box-shadow:0 2px 6px -3px rgba(20,40,80,.4);transition:.15s;}
   .zctrl button:hover{color:var(--ohtani);border-color:var(--ohtani);}
   .axlab{font-family:var(--body);font-size:13px;fill:var(--sub);}
+  .ftick{font-family:var(--body);font-size:9.5px;fill:var(--faint);}
   .tick text{font-family:var(--body);font-size:12px;fill:var(--faint);}.tick line{stroke:var(--line);}.domain{stroke:none;}
   figcaption{font-size:14px;color:var(--faint);margin-top:8px;}
   .combo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:24px;align-items:start;margin-top:12px;}
@@ -892,6 +893,9 @@ function LineChart(sel){
     if(!all.length){gLab.append('text').attr('x',(m.l+W-m.r)/2).attr('y',(m.t+H-m.b)/2).attr('text-anchor','middle').attr('font-family',"'Gill Sans',sans-serif").attr('font-size',14).attr('fill','#9AA0A8').text('Toggle players on in the legend to see one mini-chart each.');return;}
     const list=all.slice(0,FCAP),{xd,yd}=domains(),cols=fcols(),rows=Math.ceil(list.length/cols),gx=16,gy=14,nameH=15;
     const aL=m.l,aT=m.t,aR=W-m.r,aB=H-m.b;
+    // shared numeric scales: y-tick numbers on the left column, x-tick numbers on the bottom row of each column
+    const yticks=d3.scaleLinear().domain(yd).ticks(4).filter(v=>v>=yd[0]&&v<=yd[1]);
+    const xticks=[...new Set(d3.scaleLinear().domain(xd).ticks(5).map(Math.round))].filter(v=>v>=xd[0]&&v<=xd[1]);
     const cellW=(aR-aL-(cols-1)*gx)/cols,cellH=((aB-aT)-(rows-1)*gy)/rows;
     facetCells=[];facetLay={aL,cellW,gx,cols,xd};   // remembered for the synchronized hover cursor
     gAx.append('text').attr('class','axlab').attr('x',(aL+aR)/2).attr('y',H-6).attr('text-anchor','middle').text(xmode==='age'?'Player age':'Season of career (1st, 2nd, 3rd …)');
@@ -910,6 +914,11 @@ function LineChart(sel){
       ctx.globalAlpha=1;ctx.restore();
       gStar.append('rect').attr('x',px0).attr('y',py0).attr('width',Math.max(0,px1-px0)).attr('height',Math.max(0,py1-py0)).attr('fill','none').attr('stroke','#E7EBF1').style('pointer-events','none');
       if(shape!=='cumulative'){const zy=ys(0);if(zy>=py0&&zy<=py1)gStar.append('line').attr('x1',px0).attr('x2',px1).attr('y1',zy).attr('y2',zy).attr('stroke','#EFF2F6').style('pointer-events','none');}
+      // tick numbers: y on the leftmost column, x on the bottom-most cell of each column
+      if(ci===0)for(const v of yticks){const yy=ys(v);if(yy>=py0-1&&yy<=py1+1)
+        gAx.append('text').attr('x',px0-5).attr('y',yy+3).attr('text-anchor','end').attr('class','ftick').text(fmtV(v));}
+      if(idx+cols>=list.length)for(const v of xticks){const xx=xs(v);if(xx>=px0-1&&xx<=px1+1)
+        gAx.append('text').attr('x',xx).attr('y',py1+12).attr('text-anchor','middle').attr('class','ftick').text(v);}
       const pts=dataOf(P[s.k]).filter(pt=>xv(pt)!=null);
       if(pts.length){let d='';pts.forEach((pt,i)=>{d+=(i?'L':'M')+xs(xv(pt)).toFixed(1)+' '+ys(pt[1]).toFixed(1);});
         gStar.append('path').attr('d',d).attr('fill','none').attr('stroke',s.color).attr('stroke-width',2).style('pointer-events','none');
