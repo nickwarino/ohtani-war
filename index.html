@@ -28,6 +28,15 @@
     backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:9px 16px;display:flex;
     align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
   #controls .cap{font-family:var(--display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);}
+  /* collapse/expand toggle for the filter bar */
+  .ctrl-toggle{font-family:var(--display);font-weight:bold;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    border:1.5px solid var(--line);background:#fff;color:var(--sub);padding:5px 12px;border-radius:30px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:.15s;white-space:nowrap;}
+  .ctrl-toggle:hover{color:var(--ohtani);border-color:var(--ohtani);}
+  .ctrl-toggle .cv{font-size:9px;transition:transform .2s;}
+  body.filters-hidden .ctrl-toggle .cv{transform:rotate(180deg);}
+  body.filters-hidden #controls > *:not(.ctrl-toggle){display:none;}
+  body.filters-hidden #controls{padding-top:6px;padding-bottom:6px;}
   #erafilter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-left:1px solid var(--line);padding-left:12px;}
   .erpresets{display:flex;gap:4px;}
   .erpresets button{font-family:var(--display);font-weight:bold;font-size:11px;border:1.5px solid var(--line);background:#fff;
@@ -148,10 +157,18 @@
   .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s,transform .7s;}.reveal.in{opacity:1;transform:none;}
   footer{max-width:1040px;margin:34px auto 0;padding:36px 26px 80px;border-top:1px solid var(--line);color:var(--faint);font-size:14px;}
   footer b{color:var(--sub);}
-  @media(max-width:640px){body{font-size:16.5px}nav .brand,#controls .cap{display:none}
+  @media(max-width:640px){body{font-size:16.5px}nav .brand{display:none}
     header.hero{min-height:auto;padding:96px 22px 36px;}
     /* contain keeps all three figures visible; the letterbox blends into the matching parchment bg */
-    .hero-bg{background-size:contain;background-position:center 64%;}}
+    .hero-bg{background-size:contain;background-position:center 64%;}
+    /* un-squish the filter bar: stack each group full-width, scroll if tall, toggle pinned on top */
+    #controls{flex-direction:column;align-items:stretch;gap:10px;padding:8px 16px;max-height:76vh;overflow-y:auto;}
+    .ctrl-toggle{align-self:center;}
+    #legend{justify-content:flex-start;}
+    .searchbox,.searchbox input{width:100%;}
+    #erafilter,#pedfilter{border-left:none;border-top:1px solid var(--line);padding-left:0;padding-top:10px;
+      align-items:flex-start;justify-content:flex-start;}
+    .erslide{width:100%;}.erslide input[type=range]{flex:1;width:auto;}}
 
   /* "What is WAR?" — nav button, hero spell-out line, and the explainer modal */
   .nav-help{font-family:var(--display);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;
@@ -213,6 +230,7 @@
   <button type="button" class="nav-help" data-war-open aria-haspopup="dialog">What is WAR?</button>
 </nav>
 <div id="controls">
+  <button type="button" id="ctrlToggle" class="ctrl-toggle" aria-expanded="true" aria-controls="controls">Filters <span class="cv" aria-hidden="true">▲</span></button>
   <span class="cap">Players:</span>
   <div id="legend"></div>
   <div class="searchbox">
@@ -238,6 +256,17 @@
     </div>
   </div>
 </div>
+<script>
+// collapse/expand the filter bar; collapsed by default on phones, choice remembered
+(function(){
+  const body=document.body,btn=document.getElementById('ctrlToggle');
+  function set(hidden){body.classList.toggle('filters-hidden',hidden);btn.setAttribute('aria-expanded',String(!hidden));
+    try{localStorage.setItem('mlbFilters',hidden?'hidden':'shown');}catch(e){}}
+  let saved=null;try{saved=localStorage.getItem('mlbFilters');}catch(e){}
+  set(saved?saved==='hidden':window.matchMedia('(max-width:640px)').matches);
+  btn.addEventListener('click',()=>set(!body.classList.contains('filters-hidden')));
+})();
+</script>
 
 <header class="hero">
   <div class="hero-bg" role="img" aria-label="Ink-wash illustration of Shohei Ohtani, Babe Ruth, and Barry Bonds at bat, each with their signature stats and equations."></div>
@@ -587,6 +616,7 @@ function ScatterView(sel,opts){
   const clipRect=svg.append('defs').append('clipPath').attr('id',clipId).append('rect');
   const gGrid=svg.append('g').attr('clip-path',cp),gAx=svg.append('g');
   const gHi=svg.append('g').attr('clip-path',cp),gPin=svg.append('g').attr('clip-path',cp),gPts=svg.append('g').attr('clip-path',cp),gLab=svg.append('g').attr('clip-path',cp);
+  const gAnnot=svg.append('g').style('pointer-events','none');
   const overlay=svg.append('rect').attr('fill','transparent').style('pointer-events','all').style('cursor','crosshair');
   let W,H,x,y,bx,by,zt=d3.zoomIdentity,cloud=[],hi=[],labels=[],qt=null,pinned=null;
   const m={t:14,r:18,b:46,l:50},FONT="'Gill Sans',sans-serif";
@@ -632,16 +662,19 @@ function ScatterView(sel,opts){
       .attr('d',d=>{const r=Math.max(3.5,R(opts.sz?opts.sz(d):0));
         return symb.type(neg(d)?d3.symbolTriangle:d3.symbolCircle).size(neg(d)?r*r*2.4:Math.PI*r*r)();})
       .attr('fill',d=>(seriesOf(d.k)||{}).color||'#444');
-    // labels: keep every highlighted bubble's label visible by nudging collisions apart and drawing a leader stem
+    // labels: show as many highlighted labels as fit without overlapping, best seasons first; only place near the
+    // point (short search), so crowded zoomed-out views stay clean and zooming in spreads points apart to reveal more
     const fs=opts.labSize||11,cw=fs*0.58,lh=fs+2.5,pL=m.l,pR=W-m.r,pT=m.t,pB=H-m.b,placed=[];
-    const items=labels.map(d=>{const cx=x(opts.px(d)),cy=y(opts.py(d)),r=Math.max(4,R(opts.sz?opts.sz(d):0));
+    const items=labels.filter(d=>!(opts.annot&&opts.annot.find(d)))   // the annotated point gets its own callout, not a year label
+        .map(d=>{const cx=x(opts.px(d)),cy=y(opts.py(d)),r=Math.max(4,R(opts.sz?opts.sz(d):0));
         return {key:d.k+'_'+d.a+'_'+d.z,cx,cy,r,txt:opts.labelText(d),col:(seriesOf(d.k)||{}).color||'#444',tot:d.tot};})
       .sort((a,b)=>b.tot-a.tot);
+    const SLOTS=opts.labelSlots||3;   // how far (in label-rows) a label may slide to find a gap before it's dropped
     const lab=[];
     for(const it of items){const w=it.txt.length*cw+3;let best=null;
       for(const side of [1,-1]){const tx=it.cx+side*(it.r+4),rx=side>0?tx:tx-w;
         if(rx<pL||rx+w>pR)continue;
-        for(let s=0;s<=34&&!best;s++){const off=(s%2?-1:1)*Math.ceil(s/2)*lh,vc=it.cy+off;
+        for(let s=0;s<=SLOTS&&!best;s++){const off=(s%2?-1:1)*Math.ceil(s/2)*lh,vc=it.cy+off;
           if(vc-fs/2<pT||vc+fs/2>pB)continue;
           const rect={x:rx,y:vc-fs/2-1,w,h:fs+2};let ok=true;
           for(const p of placed)if(rect.x<p.x+p.w&&p.x<rect.x+rect.w&&rect.y<p.y+p.h&&p.y<rect.y+rect.h){ok=false;break;}
@@ -658,7 +691,27 @@ function ScatterView(sel,opts){
     ls.exit().remove();
     ls.enter().append('text').attr('class','lab').attr('font-family',FONT).attr('font-weight','bold').style('pointer-events','none').attr('font-size',fs).attr('dy','.32em')
       .merge(ls).attr('x',o=>o.tx).attr('y',o=>o.vc).attr('text-anchor',o=>o.anchor).attr('fill',o=>o.col).text(o=>o.txt);
-    buildQt();drawPin();}
+    buildQt();drawPin();drawAnnot();}
+  // a single highlighted callout (e.g. Ohtani's 2026 — the star of the story); tracks zoom/pan, hides when off-plot or its player is toggled off
+  function drawAnnot(){gAnnot.selectAll('*').remove();const a=opts.annot;if(!a)return;
+    const pt=hi.find(a.find);if(!pt)return;
+    const cx=x(opts.px(pt)),cy=y(opts.py(pt));
+    if(cx<m.l-2||cx>W-m.r+2||cy<m.t-2||cy>H-m.b+2)return;
+    const GOLD='#C8920A',r=Math.max(4,R(opts.sz?opts.sz(pt):0)),ringR=r+4.5;
+    const s=(a.dir==='right'||(a.dir!=='left'&&cx<(m.l+W-m.r)/2))?1:-1,anEnd=s<0;
+    const f1=13,f2=11.5,t1=(a.icon?'★ ':'')+a.title,t2=a.sub;
+    const w=Math.max(t1.length*f1*0.6,t2.length*f2*0.52),pad=9,pillW=w+pad*2,pillH=34;
+    let px0=s>0?cx+r+40:cx-r-40-pillW;
+    px0=Math.min(Math.max(px0,m.l+4),W-m.r-4-pillW);
+    let py0=cy-46;py0=Math.min(Math.max(py0,m.t+2),H-m.b-pillH-2);
+    const tx=anEnd?px0+pillW-pad:px0+pad;
+    gAnnot.append('circle').attr('cx',cx).attr('cy',cy).attr('r',ringR).attr('fill','none').attr('stroke',GOLD).attr('stroke-width',2);
+    const lx=anEnd?px0+pillW:px0,ly=py0+pillH/2;
+    gAnnot.append('line').attr('x1',cx+s*ringR*0.72).attr('y1',cy-ringR*0.72).attr('x2',lx).attr('y2',ly).attr('stroke',GOLD).attr('stroke-width',1.4).attr('opacity',.9);
+    gAnnot.append('rect').attr('x',px0).attr('y',py0).attr('width',pillW).attr('height',pillH).attr('rx',8).attr('fill','#fff').attr('stroke',GOLD).attr('stroke-width',1.4).attr('opacity',.97);
+    const anchor=anEnd?'end':'start';
+    gAnnot.append('text').attr('x',tx).attr('y',py0+14).attr('text-anchor',anchor).attr('font-family',"'Futura','Trebuchet MS',sans-serif").attr('font-weight','bold').attr('font-size',f1).attr('fill','#0C2340').text(t1);
+    gAnnot.append('text').attr('x',tx).attr('y',py0+28).attr('text-anchor',anchor).attr('font-family',FONT).attr('font-style','italic').attr('font-size',f2).attr('fill',GOLD).text(t2);}
   function buildQt(){const nodes=[];
     for(const d of cloud)nodes.push({px:x(opts.px(d)),py:y(opts.py(d)),d,hi:false});
     for(const d of hi)nodes.push({px:x(opts.px(d)),py:y(opts.py(d)),d,hi:true});
@@ -920,7 +973,8 @@ const N1=()=>windows(1);
 const mapTip=d=>`<div class="nm" style="color:${(seriesOf(d.k)||{}).color||'#111'}">${P[d.k].name} ${d.a}</div><div class="row">Bat <b>${d.b.toFixed(1)}</b> · Pit <b>${d.w.toFixed(1)}</b> · BsR <b>${d.sz.toFixed(1)}</b></div>`;
 const mapBubble=ScatterView('#c-map',{compute:N1,px:d=>d.b,py:d=>d.w,sz:d=>d.sz,sized:true,sizeMax:15,sizeRange:11,
   square:true,zero:true,xDom:[-5,16],yDom:[-5,16],xLab:'Batting WAR per 162 games',yLab:'Pitching WAR per 162 games',
-  label:true,labSize:11,labelText:d=>yy(d.a),tip:mapTip});
+  label:true,labSize:11,labelText:d=>yy(d.a),tip:mapTip,
+  annot:{find:d=>d.k===M.starsIdx.Ohtani&&d.a===2026,title:'Ohtani 2026',sub:'the star of the story',icon:true}});
 Lollipop('#l-map',{compute:()=>windows(1),row:d=>({k:d.k,name:P[d.k].name,val:d.tot,rank:d.rank,yr:String(d.a),a:d.a,z:d.z}),
   maxVal:16,labelW:182,valName:'WAR/162',onPick:r=>mapBubble.pin(r)});
 
