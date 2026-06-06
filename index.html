@@ -698,7 +698,7 @@ function applyCareerMode(mode){if(mode===careerMode)return;careerMode=mode;caree
     t.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));applyCareerMode(b.dataset.mode);});})();
 
 const cumChart=LineChart('#c-cum');
-(function(){const t=document.querySelector('.xtoggle');if(!t)return;
+(function(){const t=document.querySelector('#arc .xtoggle');if(!t)return;
   t.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
     t.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));cumChart.setMode(b.dataset.mode);});})();
 
