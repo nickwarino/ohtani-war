@@ -77,6 +77,17 @@
   .chart canvas{position:absolute;top:0;left:0;pointer-events:none;}
   .chart svg{display:block;width:100%;position:relative;z-index:1;}
   .lolli svg{display:block;width:100%;}
+  .lolsearch{margin:0 0 6px;position:relative;}
+  .lolsearch input{width:100%;font-family:var(--body);font-size:13px;border:1.5px solid var(--line);border-radius:8px;
+    padding:5px 10px;outline:none;color:var(--ink);background:#fff;}
+  .lolsearch input:focus{border-color:var(--ohtani);}
+  .lolres{position:absolute;top:34px;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:8px;
+    box-shadow:0 14px 34px -14px rgba(20,40,80,.35);display:none;z-index:60;overflow-y:auto;max-height:236px;}
+  .lolres .sr{padding:7px 12px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;gap:10px;}
+  .lolres .sr:hover{background:var(--soft);}
+  .lolres .sr span{color:var(--faint);font-size:11px;}
+  .lolres .sr.cap{color:var(--faint);cursor:default;justify-content:flex-start;}
+  .lolres .sr.cap:hover{background:#fff;}
   .lolliscroll{position:relative;scrollbar-width:thin;scrollbar-color:var(--cloud) transparent;}
   .lolliscroll::-webkit-scrollbar{width:8px;}
   .lolliscroll::-webkit-scrollbar-thumb{background:var(--cloud);border-radius:4px;}
@@ -205,7 +216,7 @@
      matters most — how fully a player turns once-in-history talent into production no one else can touch — <span class="o">Ohtani</span>
      is the <strong>greatest of all time</strong>. Singular greatness: a category of one.</p>
   <div class="combo reveal">
-    <div class="lolli"><div class="panel-h">Best single seasons · WAR/162 · scroll for more ↓</div><div id="l-map"></div></div>
+    <div class="lolli"><div class="panel-h">Best single seasons · WAR/162 · search or scroll ↓</div><div id="l-map"></div></div>
     <div><div class="panel-h">Every player-season</div><div class="chart" id="c-map"></div></div>
   </div>
   <figcaption class="reveal">Bubble size = baserunning runs / 162; down-triangles are negative baserunners. Click a season on the left to ring it on the right. <strong>⌘/Ctrl-scroll or the ＋/− buttons to zoom, drag to pan, double-click to reset.</strong></figcaption>
@@ -224,25 +235,35 @@
     <div class="sliderhead"><span class="n" id="winN">1</span><span class="nlbl" id="winNlbl">consecutive season</span>
       <button class="playbtn" id="winPlay" style="margin-left:auto">▶ Play</button></div>
     <input type="range" id="winSlider" min="1" max="26" value="1" step="1">
+    <div class="xtoggle" id="overlapToggle" role="group" aria-label="Overlap" style="margin-top:12px">
+      <button type="button" data-ov="0" class="on">Non-overlapping</button>
+      <button type="button" data-ov="1">Include overlapping</button>
+    </div>
   </div>
   <div class="combo reveal">
-    <div class="lolli"><div class="panel-h">Runs of this length · scroll for more ↓</div><div id="l-window"></div></div>
+    <div class="lolli"><div class="panel-h">Runs of this length · search or scroll ↓</div><div id="l-window"></div></div>
     <div><div class="panel-h">Two-way space · every run</div><div class="chart" id="c-window"></div></div>
   </div>
-  <figcaption class="reveal">Each point is one non-overlapping run of N consecutive seasons (avg WAR/162). All runs shown — no sampling. <strong>⌘/Ctrl-scroll or the ＋/− buttons to zoom, drag to pan, double-click to reset.</strong></figcaption>
+  <figcaption class="reveal">Each point is one run of N consecutive seasons (avg WAR/162). By default runs from the same player can't overlap; the toggle adds back every overlapping run. <strong>⌘/Ctrl-scroll or the ＋/− buttons to zoom, drag to pan, double-click to reset.</strong></figcaption>
 </section>
 <div class="divider"></div>
 
 <section id="career">
   <div class="eyebrow reveal">03 — A Whole Career</div>
-  <h2 class="reveal">Career Value, Per Season</h2>
-  <p class="reveal">Total career WAR divided by seasons played. <span class="r">Ruth</span> is the benchmark;
-     <span class="b">Bonds</span> 3rd on hitting alone; <span class="o">Ohtani</span> 6th, the only two-way profile up top.</p>
+  <h2 class="reveal">A Whole Career's Value</h2>
+  <p class="reveal"><strong>Per season</strong> is career WAR/162 divided by seasons played — a rate that rewards peak quality;
+     <span class="r">Ruth</span> is the benchmark, <span class="b">Bonds</span> 3rd on hitting alone, <span class="o">Ohtani</span>
+     6th and the only two-way profile up top. <strong>Career total</strong> sums it instead, rewarding longevity — where Ohtani's
+     late, injury-shortened start leaves him far down. Toggle between the two.</p>
+  <div class="xtoggle reveal" id="careerToggle" role="group" aria-label="Career metric">
+    <button type="button" data-mode="rate" class="on">Per season</button>
+    <button type="button" data-mode="total">Career total</button>
+  </div>
   <div class="combo reveal">
-    <div class="lolli"><div class="panel-h">Best careers · WAR/season · scroll for more ↓</div><div id="l-career"></div></div>
+    <div class="lolli"><div class="panel-h">Best careers · search or scroll ↓</div><div id="l-career"></div></div>
     <div><div class="panel-h">Every career (min. 3 seasons)</div><div class="chart" id="c-career"></div></div>
   </div>
-  <figcaption class="reveal">One point per player: career batting vs pitching WAR per season. Bubble = baserunning. <strong>⌘/Ctrl-scroll or the ＋/− buttons to zoom, drag to pan, double-click to reset.</strong></figcaption>
+  <figcaption class="reveal">One point per player: career batting vs pitching WAR/162. Bubble = baserunning. <strong>⌘/Ctrl-scroll or the ＋/− buttons to zoom, drag to pan, double-click to reset.</strong></figcaption>
 </section>
 <div class="divider"></div>
 
@@ -299,8 +320,8 @@ const tip=document.getElementById('tip');
 function showTip(h,x,y){tip.innerHTML=h;tip.style.opacity=1;let tx=x+15,ty=y+15;
   if(tx+255>innerWidth)tx=x-265;if(ty+130>innerHeight)ty=y-130;tip.style.left=tx+'px';tip.style.top=ty+'px';}
 function hideTip(){tip.style.opacity=0;}
-const yy=v=>"'"+String(v).slice(2);
-const span=(a,z)=>a===z?String(a):yy(a)+"-"+String(z).slice(2);
+const yy=v=>String(v);
+const span=(a,z)=>a===z?String(a):String(a)+"-"+String(z).slice(2);   // full start year, 2-digit end, e.g. 1999-01
 const CLOUD='#C9CCD1';
 const STAR_COL={Ohtani:'#1166CC',Ruth:'#0C2340',Bonds:'#E8772E'};
 const PALETTE=['#2CA58D','#B5179E','#7B2CBF','#E07A00','#0A9396','#9B2226','#3A0CA3','#E0A100','#588157','#BC4749'];
@@ -342,8 +363,11 @@ const listeners=[];
 function emit(){renderLegend();listeners.forEach(f=>f());}
 function visibleKs(){return new Set(series.filter(s=>s.visible).map(s=>s.k));}
 function seriesOf(k){return series.find(s=>s.k===k);}
-function addPlayer(k){const e=seriesOf(k);if(e)e.visible=true;
-  else series.push({k,name:P[k].name,color:PALETTE[palI++%PALETTE.length],visible:true});emit();}
+const MAX_ADD=10;   // up to 10 searched-in players (the 3 stars don't count against it)
+function addedCount(){return series.filter(s=>!s.star).length;}
+function addPlayer(k){const e=seriesOf(k);if(e){e.visible=true;emit();return false;}
+  if(addedCount()>=MAX_ADD)return true;   // at cap — signal callers so the search can say so
+  series.push({k,name:P[k].name,color:PALETTE[palI++%PALETTE.length],visible:true});emit();return false;}
 function toggleVis(k){const e=seriesOf(k);if(e){e.visible=!e.visible;emit();}}
 function removePlayer(k){const i=series.findIndex(s=>s.k===k);if(i>=0&&!series[i].star){series.splice(i,1);emit();}}
 
@@ -365,23 +389,27 @@ sIn.addEventListener('input',()=>{const q=sIn.value.trim().toLowerCase();
 document.addEventListener('click',e=>{if(!e.target.closest('.searchbox'))sBox.style.display='none';});
 
 // ---- computations (cached) ----
-let winCache={};
+let winCache={},overlapMode=false;   // false = greedy non-overlapping per player; true = every sliding run
 function windows(N){if(winCache[N])return winCache[N];const arr=[];
-  // generate every sliding run, then greedily keep the best non-overlapping runs per player
+  // generate every sliding run; then (unless overlapMode) greedily keep the best non-overlapping runs per player
   for(const p of P){if(!incl(p))continue;for(const run of p.runs){const s=run[0],l=run[1];if(l<N)continue;
     for(let j=s;j<=s+l-N;j++)arr.push({k:p.k,j,tot:(p.pt[j+N]-p.pt[j])/N,b:(p.pb[j+N]-p.pb[j])/N,
       w:(p.pw[j+N]-p.pw[j])/N,sz:(p.ps[j+N]-p.ps[j])/N,a:p.y[j],z:p.y[j+N-1]});}}
   arr.sort((a,b)=>b.tot-a.tot);
-  const taken={},out=[];
-  for(const d of arr){const t=taken[d.k]||(taken[d.k]=[]);let ok=true;
-    for(const r of t)if(d.j<=r[1]&&r[0]<=d.j+N-1){ok=false;break;}
-    if(ok){t.push([d.j,d.j+N-1]);out.push(d);}}
+  let out;
+  if(overlapMode){out=arr;}
+  else{out=[];const taken={};
+    for(const d of arr){const t=taken[d.k]||(taken[d.k]=[]);let ok=true;
+      for(const r of t)if(d.j<=r[1]&&r[0]<=d.j+N-1){ok=false;break;}
+      if(ok){t.push([d.j,d.j+N-1]);out.push(d);}}}
   out.forEach((d,i)=>d.rank=i+1);winCache[N]=out;return out;}
-let careerCache=null;
-function careers(){if(careerCache)return careerCache;
+let careerCache=null,careerCacheMode=null,careerMode='rate';   // 'rate' = WAR/162 per season, 'total' = total career WAR/162
+function careers(){if(careerCache&&careerCacheMode===careerMode)return careerCache;
+  const total=careerMode==='total';
   careerCache=P.filter(p=>p.n>=3&&incl(p)).map(p=>{let b=0,w=0,s=0;for(let i=0;i<p.n;i++){b+=p.b[i];w+=p.w[i];s+=p.s[i];}
-    return {k:p.k,b:b/p.n,w:w/p.n,sz:s/p.n,tot:(b+w)/p.n,a:p.y[0],z:p.y[p.n-1],n:p.n};});
-  careerCache.sort((a,b)=>b.tot-a.tot);careerCache.forEach((d,i)=>d.rank=i+1);return careerCache;}
+    const d=total?1:p.n;
+    return {k:p.k,b:b/d,w:w/d,sz:s/d,tot:(b+w)/d,a:p.y[0],z:p.y[p.n-1],n:p.n};});
+  careerCache.sort((a,b)=>b.tot-a.tot);careerCache.forEach((d,i)=>d.rank=i+1);careerCacheMode=careerMode;return careerCache;}
 function cumOf(p){if(p._cum)return p._cum;const o=[];let c=0;for(let i=0;i<p.n;i++){c+=p.b[i]+p.w[i];o.push([i+1,c,p.a?p.a[i]:null]);}p._cum=o;return o;}
 
 // ================= ScatterView =================
@@ -404,6 +432,7 @@ function ScatterView(sel,opts){
     for(let i=0;i<pts.length;i++){const d=pts[i];if(vis.has(d.k))hi.push(d);else cloud.push(d);}
     labels=opts.label?hi:[];}
   function resize(){W=root.node().clientWidth;H=opts.square?W:Math.max(360,Math.min(W*(opts.aspect||.62),560));
+    sizeR.domain([0,opts.sizeMax||15]).range([1.1,opts.sizeRange||11]);   // pick up sizeMax changed via setView
     const dpr=window.devicePixelRatio||1;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
     svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
     bx=d3.scaleLinear(opts.xDom,[m.l,W-m.r]);by=d3.scaleLinear(opts.yDom,[H-m.b,m.t]);
@@ -493,17 +522,21 @@ function ScatterView(sel,opts){
   recompute();resize();
   let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(resize,150);});
   listeners.push(()=>{recompute();draw();});
-  return {redraw(){recompute();draw();},pin(w){pinned=w;draw();}};
+  return {redraw(){recompute();draw();},pin(w){pinned=w;draw();},
+    setView(o){Object.assign(opts,o);zt=d3.zoomIdentity;recompute();resize();}};
 }
 
 // ================= Lollipop =================
 function Lollipop(sel,cfg){
   const root=d3.select(sel);
+  const sbox=root.append('div').attr('class','lolsearch');
+  const sin=sbox.append('input').attr('type','text').attr('placeholder','search a player to highlight…').attr('autocomplete','off').node();
+  const sres=sbox.append('div').attr('class','lolres').node();
   const wrap=root.append('div').attr('class','lolliscroll').style('overflow-y','auto').style('max-height',(cfg.maxH||430)+'px');
   const svg=wrap.append('svg'),g=svg.append('g');
   let W=0,H=0,all=[],rows=[],limit=cfg.limit||25;const step=cfg.step||25,labelW=cfg.labelW||168,mr=34,mt=6,mb=6,FONT="'Gill Sans',sans-serif";
-  function draw(){all=cfg.compute();          // note: never shrink `limit` to all.length — slice caps safely,
-    rows=all.slice(0,limit).map(cfg.row);      // and shrinking would strand it small when the list grows back
+  function draw(){all=cfg.compute();          // note: never shrink `limit` to all.length — slice caps safely
+    rows=all.slice(0,limit).map(cfg.row);
     W=wrap.node().clientWidth;H=rows.length*19+10;
     svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
     const y=d3.scaleBand().domain(d3.range(rows.length)).range([mt,H-mb]).padding(.34),x=d3.scaleLinear([0,cfg.maxVal],[labelW,W-mr]);
@@ -524,9 +557,21 @@ function Lollipop(sel,cfg){
   function colOf(d){const s=seriesOf(d.k);return s?s.color:'#2A2A2A';}
   wrap.node().addEventListener('scroll',()=>{const el=wrap.node();
     if(el.scrollTop+el.clientHeight>=el.scrollHeight-80&&limit<all.length){limit=Math.min(all.length,limit+step);draw();}},{passive:true});
+  // search = pick a player to highlight; selecting adds them to the graph (up to 10), clears the box to search again
+  function closeRes(){sres.style.display='none';}
+  function showRes(){const q=sin.value.trim().toLowerCase();
+    if(!q){closeRes();return;}
+    if(addedCount()>=MAX_ADD){sres.innerHTML=`<div class="sr cap">10 players max — remove one from the legend to add more</div>`;sres.style.display='block';return;}
+    const hits=allNames.filter(a=>a.low.includes(q)&&!seriesOf(a.k)).sort((a,b)=>b.n-a.n).slice(0,8);
+    sres.innerHTML=hits.length?hits.map(h=>`<div class="sr" data-k="${h.k}">${h.name}<span>${h.n} yr</span></div>`).join(''):`<div class="sr cap">no matches</div>`;
+    sres.style.display='block';
+    sres.querySelectorAll('.sr[data-k]').forEach(d=>d.onclick=()=>{addPlayer(+d.dataset.k);sin.value='';closeRes();sin.focus();});}
+  sin.addEventListener('input',showRes);
+  sin.addEventListener('focus',showRes);
+  sin.addEventListener('blur',()=>setTimeout(closeRes,160));
   draw();let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(draw,150);});
   listeners.push(draw);
-  return {redraw:draw,reset(){limit=cfg.limit||25;wrap.node().scrollTop=0;draw();}};
+  return {redraw:draw,reset(){limit=cfg.limit||25;wrap.node().scrollTop=0;draw();},set(o){Object.assign(cfg,o);}};
 }
 
 // ================= LineChart (cumulative) =================
@@ -637,13 +682,31 @@ const winLol=Lollipop('#l-window',{compute:()=>windows(curN),row:d=>({k:d.k,name
     play.textContent='❚❚ Pause';if(+slider.value>=+slider.max)slider.value=1;
     timer=setInterval(()=>{let v=+slider.value;if(v>=+slider.max){clearInterval(timer);timer=null;play.textContent='▶ Play';return;}slider.value=v+1;setN(v+1);},760);});
 })();
+function setOverlap(on){if(on===overlapMode)return;overlapMode=on;winCache={};winBubble.redraw();winLol.redraw();updateLiveRank();buildTable(true);}
+(function(){const t=document.getElementById('overlapToggle');if(!t)return;
+  t.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    t.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));setOverlap(b.dataset.ov==='1');});})();
 
-const carTip=d=>`<div class="nm" style="color:${(seriesOf(d.k)||{}).color||'#111'}">${P[d.k].name}</div><div class="row">Career rank <b>#${d.rank}</b> · ${d.n} yr (${d.a}-${d.z})</div><div class="row">Bat ${d.b.toFixed(1)} · Pit ${d.w.toFixed(1)} · BsR ${d.sz.toFixed(1)} /yr</div>`;
+const carTip=d=>`<div class="nm" style="color:${(seriesOf(d.k)||{}).color||'#111'}">${P[d.k].name}</div><div class="row">Career rank <b>#${d.rank}</b> · ${d.n} yr (${span(d.a,d.z)})</div><div class="row">Bat ${d.b.toFixed(1)} · Pit ${d.w.toFixed(1)} · BsR ${d.sz.toFixed(1)} ${careerMode==='total'?'(career)':'/yr'}</div>`;
 const carBubble=ScatterView('#c-career',{compute:careers,px:d=>d.b,py:d=>d.w,sz:d=>d.sz,sized:true,sizeMax:6,sizeRange:11,
   square:true,zero:true,xDom:[-2,10],yDom:[-2,10],xLab:'Batting WAR per season',yLab:'Pitching WAR per season',
   label:true,labSize:11,labelText:d=>P[d.k].name.split(' ').slice(-1)[0]+' '+span(d.a,d.z),tip:carTip});
-Lollipop('#l-career',{compute:()=>careers(),row:d=>({k:d.k,name:P[d.k].name,val:d.tot,rank:d.rank,yr:`${d.n} yr · ${span(d.a,d.z)}`,a:d.a,z:d.z}),
+const carLol=Lollipop('#l-career',{compute:()=>careers(),row:d=>({k:d.k,name:P[d.k].name,val:d.tot,rank:d.rank,yr:`${d.n} yr · ${span(d.a,d.z)}`,a:d.a,z:d.z}),
   maxVal:9.5,labelW:210,valName:'WAR/season',onPick:r=>carBubble.pin(r)});
+function applyCareerMode(mode){if(mode===careerMode)return;careerMode=mode;careerCache=null;
+  if(mode==='total'){const data=careers();let xm=1,ym=1,sm=1;
+    for(const d of data){if(d.b>xm)xm=d.b;if(d.w>ym)ym=d.w;const a=Math.abs(d.sz);if(a>sm)sm=a;}
+    carBubble.setView({xDom:[-5,Math.ceil(xm/10)*10+5],yDom:[-5,Math.ceil(ym/10)*10+5],sizeMax:sm,
+      xLab:'Career batting WAR / 162',yLab:'Career pitching WAR / 162'});
+    carLol.set({maxVal:Math.ceil((data[0]?data[0].tot:200)*1.03),valName:'career WAR/162'});
+  }else{
+    carBubble.setView({xDom:[-2,10],yDom:[-2,10],sizeMax:6,xLab:'Batting WAR per season',yLab:'Pitching WAR per season'});
+    carLol.set({maxVal:9.5,valName:'WAR/season'});
+  }
+  carLol.redraw();}
+(function(){const t=document.getElementById('careerToggle');if(!t)return;
+  t.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    t.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));applyCareerMode(b.dataset.mode);});})();
 
 const cumChart=LineChart('#c-cum');
 (function(){const t=document.querySelector('.xtoggle');if(!t)return;
