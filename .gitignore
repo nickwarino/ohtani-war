@@ -8,4 +8,5 @@
 /copy_stat_sheet_from_onedrive.sh
 /update_site.sh
 /update_site.log
+/update_site.launchd.log
 /README.md
