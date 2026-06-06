@@ -934,7 +934,7 @@ function LineChart(sel){
   function move(ev){if(shape==='best')return;const pt=d3.pointer(ev,svg.node());lastMX=pt[0];lastMY=pt[1];
     if(sliceRAF)return;sliceRAF=requestAnimationFrame(()=>{sliceRAF=null;faceting()?facetSlice(lastMX,lastMY):drawSlice(lastMX);});}
   // faceted hover: one synchronized vertical cursor at the same career season/age across every panel
-  function facetSlice(mx){gSlice.selectAll('*').remove();hideTip();
+  function facetSlice(mx,my){gSlice.selectAll('*').remove();hideTip();
     if(!facetCells.length||!facetLay)return;
     const {aL,cellW,gx,cols,xd}=facetLay;
     let ci=Math.floor((mx-aL)/(cellW+gx));ci=Math.max(0,Math.min(cols-1,ci));
@@ -945,7 +945,22 @@ function LineChart(sel){
       const v=valAt(P[c.k],xq);if(v==null)continue;const vy=c.ys(v),rt=lx<(c.px0+c.px1)/2;
       gSlice.append('circle').attr('cx',lx).attr('cy',vy).attr('r',3.6).attr('fill',c.color).attr('stroke','#fff').attr('stroke-width',1.2);
       gSlice.append('text').attr('x',lx+(rt?5:-5)).attr('y',vy-6).attr('text-anchor',rt?'start':'end').attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',11).attr('paint-order','stroke').attr('stroke','#fff').attr('stroke-width',2.5).attr('fill',c.color).text(fmtV(v));}
-    gSlice.append('text').attr('x',colX0+cellW/2).attr('y',11).attr('text-anchor','middle').attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',11).attr('fill','#5A5A5A').text(xmode==='age'?'Age '+xq:'Season '+xq);}
+    gSlice.append('text').attr('x',colX0+cellW/2).attr('y',11).attr('text-anchor','middle').attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',11).attr('fill','#5A5A5A').text(xmode==='age'?'Age '+xq:'Season '+xq);
+    // same field leaderboard as the overlay view: top 10 (plus any highlighted) at this career-season, in a corner card
+    sliceCard(xq,mx,my,aL,(aL+(W-m.r))/2,W-m.r);}
+  // the ranked "best at this point" card, shared by overlay and faceted hovers
+  function sliceCard(xq,mx,my,boxL,boxMid,boxR){
+    const arr=[];for(const p of P){if(!incl(p))continue;const v=valAt(p,xq);if(v!=null)arr.push([p.k,v]);}
+    if(!arr.length)return;arr.sort((a,b)=>b[1]-a[1]);
+    const vis=visibleKs(),show=[],inTop=new Set();
+    for(let i=0;i<Math.min(10,arr.length);i++){show.push({k:arr[i][0],v:arr[i][1],rank:i+1});inTop.add(arr[i][0]);}
+    for(let i=10;i<arr.length;i++)if(vis.has(arr[i][0])&&!inTop.has(arr[i][0]))show.push({k:arr[i][0],v:arr[i][1],rank:i+1});
+    const fs=11.5,lh=15,onRight=mx<boxMid,anchor=onRight?'end':'start',labX=onRight?boxR-2:boxL+2;
+    const card=gSlice.append('rect').attr('rx',6).attr('fill','rgba(255,255,255,0.92)').attr('stroke','rgba(20,40,80,0.12)').attr('filter','url(#slShadow)');
+    const gTxt=gSlice.append('g');let ty=m.t+12;
+    show.forEach((it,i)=>{const c=(seriesOf(it.k)||{}).color||'#2A2A2A';
+      gTxt.append('text').attr('x',labX).attr('y',ty+i*lh).attr('dy','.32em').attr('text-anchor',anchor).attr('font-family',"'Gill Sans',sans-serif").attr('font-size',fs).attr('font-weight',seriesOf(it.k)?'bold':'normal').attr('fill',c).text(`${it.rank}. ${P[it.k].name} ${fmtV(it.v)}`);});
+    const bb=gTxt.node().getBBox();card.attr('x',bb.x-6).attr('y',bb.y-4).attr('width',bb.width+12).attr('height',bb.height+8);}
   function drawSlice(mx){gSlice.selectAll('*').remove();hideTip();
     const lo=xmode==='age'?AGE_LO:1,hi=xmode==='age'?AGE_HI:curMaxSeason;
     const xq=Math.max(lo,Math.min(hi,Math.round(x.invert(mx)))),px=x(xq);
