@@ -81,13 +81,6 @@
   .lolsearch input{width:100%;font-family:var(--body);font-size:13px;border:1.5px solid var(--line);border-radius:8px;
     padding:5px 10px;outline:none;color:var(--ink);background:#fff;}
   .lolsearch input:focus{border-color:var(--ohtani);}
-  .lolres{position:absolute;top:34px;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:8px;
-    box-shadow:0 14px 34px -14px rgba(20,40,80,.35);display:none;z-index:60;overflow-y:auto;max-height:236px;}
-  .lolres .sr{padding:7px 12px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;gap:10px;}
-  .lolres .sr:hover{background:var(--soft);}
-  .lolres .sr span{color:var(--faint);font-size:11px;}
-  .lolres .sr.cap{color:var(--faint);cursor:default;justify-content:flex-start;}
-  .lolres .sr.cap:hover{background:#fff;}
   .lolliscroll{position:relative;scrollbar-width:thin;scrollbar-color:var(--cloud) transparent;}
   .lolliscroll::-webkit-scrollbar{width:8px;}
   .lolliscroll::-webkit-scrollbar-thumb{background:var(--cloud);border-radius:4px;}
@@ -530,13 +523,13 @@ function ScatterView(sel,opts){
 function Lollipop(sel,cfg){
   const root=d3.select(sel);
   const sbox=root.append('div').attr('class','lolsearch');
-  const sin=sbox.append('input').attr('type','text').attr('placeholder','search a player to highlight…').attr('autocomplete','off').node();
-  const sres=sbox.append('div').attr('class','lolres').node();
+  const sin=sbox.append('input').attr('type','text').attr('placeholder','filter this list — click names to highlight…').attr('autocomplete','off').node();
   const wrap=root.append('div').attr('class','lolliscroll').style('overflow-y','auto').style('max-height',(cfg.maxH||430)+'px');
   const svg=wrap.append('svg'),g=svg.append('g');
-  let W=0,H=0,all=[],rows=[],limit=cfg.limit||25;const step=cfg.step||25,labelW=cfg.labelW||168,mr=34,mt=6,mb=6,FONT="'Gill Sans',sans-serif";
+  let W=0,H=0,all=[],rows=[],limit=cfg.limit||25,query='';const step=cfg.step||25,labelW=cfg.labelW||168,mr=34,mt=6,mb=6,FONT="'Gill Sans',sans-serif";
   function draw(){all=cfg.compute();          // note: never shrink `limit` to all.length — slice caps safely
-    rows=all.slice(0,limit).map(cfg.row);
+    const pool=query?all.filter(d=>P[d.k].name.toLowerCase().includes(query)).slice(0,150):all.slice(0,limit);
+    rows=pool.map(cfg.row);
     W=wrap.node().clientWidth;H=rows.length*19+10;
     svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
     const y=d3.scaleBand().domain(d3.range(rows.length)).range([mt,H-mb]).padding(.34),x=d3.scaleLinear([0,cfg.maxVal],[labelW,W-mr]);
@@ -547,7 +540,7 @@ function Lollipop(sel,cfg){
     const a=en.merge(sel);
     a.attr('transform',(d,i)=>`translate(0,${y(i)+y.bandwidth()/2})`).style('cursor','pointer')
       .on('mousemove',(e,d)=>showTip(`<div class="nm" style="color:${colOf(d)}">${d.name}</div><div class="row">Rank <b>#${d.rank}</b> · ${cfg.valName} <b>${d.val.toFixed(1)}</b>${d.yr?' · '+d.yr:''}</div>`,e.clientX,e.clientY))
-      .on('mouseleave',hideTip).on('click',(e,d)=>cfg.onPick&&cfg.onPick(d));
+      .on('mouseleave',hideTip).on('click',(e,d)=>{addPlayer(d.k);cfg.onPick&&cfg.onPick(d);});
     a.select('.seg').transition().duration(400).attr('x1',labelW).attr('x2',d=>x(d.val)).attr('stroke',d=>colOf(d)).attr('stroke-width',d=>seriesOf(d.k)?2.6:1.5);
     a.select('.dot').transition().duration(400).attr('cx',d=>x(d.val)).attr('r',d=>seriesOf(d.k)?4.6:3).attr('fill',d=>colOf(d));
     a.select('.nm').attr('x',labelW-8).attr('font-weight',d=>seriesOf(d.k)?'bold':'normal')
@@ -556,19 +549,9 @@ function Lollipop(sel,cfg){
     sel.exit().remove();}
   function colOf(d){const s=seriesOf(d.k);return s?s.color:'#2A2A2A';}
   wrap.node().addEventListener('scroll',()=>{const el=wrap.node();
-    if(el.scrollTop+el.clientHeight>=el.scrollHeight-80&&limit<all.length){limit=Math.min(all.length,limit+step);draw();}},{passive:true});
-  // search = pick a player to highlight; selecting adds them to the graph (up to 10), clears the box to search again
-  function closeRes(){sres.style.display='none';}
-  function showRes(){const q=sin.value.trim().toLowerCase();
-    if(!q){closeRes();return;}
-    if(addedCount()>=MAX_ADD){sres.innerHTML=`<div class="sr cap">10 players max — remove one from the legend to add more</div>`;sres.style.display='block';return;}
-    const hits=allNames.filter(a=>a.low.includes(q)&&!seriesOf(a.k)).sort((a,b)=>b.n-a.n).slice(0,8);
-    sres.innerHTML=hits.length?hits.map(h=>`<div class="sr" data-k="${h.k}">${h.name}<span>${h.n} yr</span></div>`).join(''):`<div class="sr cap">no matches</div>`;
-    sres.style.display='block';
-    sres.querySelectorAll('.sr[data-k]').forEach(d=>d.onclick=()=>{addPlayer(+d.dataset.k);sin.value='';closeRes();sin.focus();});}
-  sin.addEventListener('input',showRes);
-  sin.addEventListener('focus',showRes);
-  sin.addEventListener('blur',()=>setTimeout(closeRes,160));
+    if(!query&&el.scrollTop+el.clientHeight>=el.scrollHeight-80&&limit<all.length){limit=Math.min(all.length,limit+step);draw();}},{passive:true});
+  // typing filters this list by name; clicking a row highlights that player on the bubble graph (up to 10)
+  sin.addEventListener('input',()=>{query=sin.value.trim().toLowerCase();wrap.node().scrollTop=0;draw();});
   draw();let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(draw,150);});
   listeners.push(draw);
   return {redraw:draw,reset(){limit=cfg.limit||25;wrap.node().scrollTop=0;draw();},set(o){Object.assign(cfg,o);}};
