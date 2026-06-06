@@ -81,6 +81,12 @@
   .lolsearch input{width:100%;font-family:var(--body);font-size:13px;border:1.5px solid var(--line);border-radius:8px;
     padding:5px 10px;outline:none;color:var(--ink);background:#fff;}
   .lolsearch input:focus{border-color:var(--ohtani);}
+  .loltog{display:none;gap:0;margin:0 0 7px;border:1.5px solid var(--line);border-radius:30px;overflow:hidden;background:#fff;width:max-content;max-width:100%;}
+  .loltog button{font-family:var(--display);font-weight:bold;font-size:10.5px;letter-spacing:.02em;border:none;background:#fff;
+    color:var(--sub);padding:5px 12px;cursor:pointer;transition:.15s;white-space:nowrap;}
+  .loltog button+button{border-left:1.5px solid var(--line);}
+  .loltog button.on{background:var(--ohtani);color:#fff;}
+  .loltog button:not(.on):hover{background:var(--soft);color:var(--ohtani);}
   .lolliscroll{position:relative;scrollbar-width:thin;scrollbar-color:var(--cloud) transparent;}
   .lolliscroll::-webkit-scrollbar{width:8px;}
   .lolliscroll::-webkit-scrollbar-thumb{background:var(--cloud);border-radius:4px;}
@@ -552,6 +558,11 @@ function Lollipop(sel,cfg){
   const root=d3.select(sel);
   const sbox=root.append('div').attr('class','lolsearch');
   const sin=sbox.append('input').attr('type','text').attr('placeholder','filter this list, click names to highlight…').attr('autocomplete','off').node();
+  // toggle (shown only once you've picked players): collapse the list to just your picks, or keep the full ranking with picks highlighted
+  const ftog=root.append('div').attr('class','loltog').html('<button type="button" data-f="1">Just my picks</button><button type="button" data-f="0">Highlight in full list</button>');
+  let focus=true;
+  const ftBtns=ftog.selectAll('button');
+  function paintTog(){ftBtns.classed('on',function(){return (this.dataset.f==='1')===focus;});}
   const wrap=root.append('div').attr('class','lolliscroll').style('overflow-y','auto').style('max-height',(cfg.maxH||430)+'px');
   const svg=wrap.append('svg'),g=svg.append('g');
   let W=0,H=0,all=[],rows=[],limit=cfg.limit||25,query='';const step=cfg.step||25,labelW=cfg.labelW||168,mr=34,mt=6,mb=6,FONT="'Gill Sans',sans-serif";
@@ -559,9 +570,11 @@ function Lollipop(sel,cfg){
     // typing → search the whole list to pick from; otherwise, once you've selected players the list
     // collapses to just those picks (so you can compare e.g. Pedro vs Maddux head to head); with no
     // selection it's the default top-N ranking. The 3 stars stay on the bubble graph, not this list.
+    const picked=addedCount()>0;
+    ftog.style('display',picked?'flex':'none');   // the toggle only matters once something is picked
     let pool;
     if(query)pool=all.filter(d=>P[d.k].name.toLowerCase().includes(query)).slice(0,150);
-    else if(addedCount()>0){const sel=new Set(series.filter(s=>!s.star&&s.visible).map(s=>s.k));pool=all.filter(d=>sel.has(d.k));}
+    else if(picked&&focus){const sel=new Set(series.filter(s=>!s.star&&s.visible).map(s=>s.k));pool=all.filter(d=>sel.has(d.k));}
     else pool=all.slice(0,limit);
     rows=pool.map(cfg.row);
     W=wrap.node().clientWidth;H=rows.length*19+10;
@@ -586,7 +599,8 @@ function Lollipop(sel,cfg){
     if(!query&&el.scrollTop+el.clientHeight>=el.scrollHeight-80&&limit<all.length){limit=Math.min(all.length,limit+step);draw();}},{passive:true});
   // typing filters this list by name; clicking a row highlights that player on the bubble graph (up to 10)
   sin.addEventListener('input',()=>{query=sin.value.trim().toLowerCase();wrap.node().scrollTop=0;draw();});
-  draw();let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(draw,150);});
+  ftBtns.on('click',function(){const f=this.dataset.f==='1';if(f!==focus){focus=f;wrap.node().scrollTop=0;draw();}});
+  paintTog();draw();let to;addEventListener('resize',()=>{clearTimeout(to);to=setTimeout(draw,150);});
   listeners.push(draw);
   return {redraw:draw,reset(){limit=cfg.limit||25;wrap.node().scrollTop=0;draw();},set(o){Object.assign(cfg,o);}};
 }
