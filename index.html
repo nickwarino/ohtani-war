@@ -528,7 +528,13 @@ function Lollipop(sel,cfg){
   const svg=wrap.append('svg'),g=svg.append('g');
   let W=0,H=0,all=[],rows=[],limit=cfg.limit||25,query='';const step=cfg.step||25,labelW=cfg.labelW||168,mr=34,mt=6,mb=6,FONT="'Gill Sans',sans-serif";
   function draw(){all=cfg.compute();          // note: never shrink `limit` to all.length — slice caps safely
-    const pool=query?all.filter(d=>P[d.k].name.toLowerCase().includes(query)).slice(0,150):all.slice(0,limit);
+    // typing → search the whole list to pick from; otherwise, once you've selected players the list
+    // collapses to just those picks (so you can compare e.g. Pedro vs Maddux head to head); with no
+    // selection it's the default top-N ranking. The 3 stars stay on the bubble graph, not this list.
+    let pool;
+    if(query)pool=all.filter(d=>P[d.k].name.toLowerCase().includes(query)).slice(0,150);
+    else if(addedCount()>0){const sel=new Set(series.filter(s=>!s.star&&s.visible).map(s=>s.k));pool=all.filter(d=>sel.has(d.k));}
+    else pool=all.slice(0,limit);
     rows=pool.map(cfg.row);
     W=wrap.node().clientWidth;H=rows.length*19+10;
     svg.attr('viewBox',`0 0 ${W} ${H}`).attr('width',W).attr('height',H);
