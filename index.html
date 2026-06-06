@@ -64,15 +64,19 @@
   h2{font-size:clamp(28px,4.4vw,46px);}
   p{margin:0 0 16px;color:#1c1c1c;max-width:70ch;}
   .o{color:var(--ohtani);font-weight:bold}.r{color:var(--ruth);font-weight:bold}.b{color:var(--bonds);font-weight:bold}
-  header.hero{max-width:none;min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;
-    text-align:center;padding:128px 26px 40px;background:radial-gradient(1100px 720px at 50% 4%,#F4EEE0,#F0E9DA 46%,#FAF6EE 76%,#fff 100%);}
+  /* hero: the ink-wash piece fills the background; the title is overlaid on a soft parchment scrim */
+  header.hero{position:relative;max-width:none;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-start;
+    align-items:center;text-align:center;padding:120px 26px 48px;overflow:hidden;background:#EFE9DB;}
+  .hero-bg{position:absolute;inset:0;z-index:0;background:url('web/background.jpg') no-repeat center 54px;background-size:contain;
+    -webkit-mask-image:linear-gradient(to bottom,#000 83%,transparent 99%);mask-image:linear-gradient(to bottom,#000 83%,transparent 99%);}
+  .hero-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(239,233,219,.95) 3%,rgba(239,233,219,.6) 14%,rgba(239,233,219,0) 30%,rgba(239,233,219,0) 80%,#fff 100%);}
+  header.hero .eyebrow,header.hero h1,header.hero .accentbar,header.hero .sub,header.hero .scrollcue{position:relative;z-index:2;}
   header.hero h1{font-size:clamp(40px,7.6vw,96px);letter-spacing:-.02em;margin-bottom:6px;}
   header.hero h1 .o{color:var(--ohtani)}header.hero h1 .r{color:var(--ruth)}header.hero h1 .b{color:var(--bonds)}
   header.hero .accentbar{height:6px;width:90px;background:var(--ohtani);border-radius:3px;margin:18px auto 22px;}
   header.hero .sub{font-size:clamp(18px,2.3vw,23px);color:var(--sub);max-width:34ch;margin:0 auto;}
-  /* the ink-wash piece (Ohtani · Ruth · Bonds) sits on matching parchment; bottom fades into the page */
-  .heroart{display:block;width:min(560px,88vw);height:auto;margin:34px auto 0;
-    -webkit-mask-image:linear-gradient(to bottom,#000 84%,transparent 99%);mask-image:linear-gradient(to bottom,#000 84%,transparent 99%);}
+  header.hero .scrollcue{position:absolute;bottom:22px;left:0;right:0;}
   .scrollcue{margin-top:40px;font-family:var(--display);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);animation:bob 1.8s ease-in-out infinite;}
   @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
 
@@ -180,12 +184,12 @@
 </div>
 
 <header class="hero">
+  <div class="hero-bg" role="img" aria-label="Ink-wash illustration of Shohei Ohtani, Babe Ruth, and Barry Bonds at bat, each with their signature stats and equations."></div>
+  <div class="hero-scrim"></div>
   <div class="eyebrow reveal">A two-way story, told in WAR per 162</div>
   <h1 class="reveal">Ohtani WAR</h1>
   <div class="accentbar reveal"></div>
   <p class="sub reveal">Contextualizing the most singular career in baseball history, measured against the other GOATs: <span class="r">Babe Ruth</span> and <span class="b">Barry Bonds</span>.</p>
-  <img class="heroart reveal" src="web/background.jpg" width="1122" height="1402" loading="eager" decoding="async"
-       alt="Ink-wash illustration of Shohei Ohtani, Babe Ruth, and Barry Bonds at bat, each with their signature stats and equations.">
   <div class="scrollcue reveal">scroll ↓</div>
 </header>
 
@@ -666,7 +670,7 @@ function LineChart(sel){
   function draw(){
     ctx.clearRect(0,0,W,H);
     gAx.selectAll('*').remove();gStar.selectAll('*').remove();gBars.selectAll('*').remove();gLab.selectAll('*').remove();gSlice.selectAll('*').remove();
-    overlay.style('pointer-events',(shape==='best'||faceting())?'none':'all');
+    overlay.style('pointer-events',shape==='best'?'none':'all');
     if(faceting()){drawFacets();return;}
     const bottomAx=gAx.append('g').attr('transform',`translate(0,${H-m.b})`);
     if(shape==='best'){const dom=x.domain();bottomAx.call(d3.axisBottom(x).tickValues(dom.length<=16?dom:dom.filter(d=>d%2===1)).tickSize(0).tickPadding(8).tickFormat(d3.format('d')));}
@@ -716,6 +720,7 @@ function LineChart(sel){
     const list=all.slice(0,FCAP),{xd,yd}=domains(),cols=fcols(),rows=Math.ceil(list.length/cols),gx=16,gy=14,nameH=15;
     const aL=m.l,aT=m.t,aR=W-m.r,aB=H-m.b;
     const cellW=(aR-aL-(cols-1)*gx)/cols,cellH=((aB-aT)-(rows-1)*gy)/rows;
+    facetCells=[];facetLay={aL,cellW,gx,cols,xd};   // remembered for the synchronized hover cursor
     gAx.append('text').attr('class','axlab').attr('x',(aL+aR)/2).attr('y',H-6).attr('text-anchor','middle').text(xmode==='age'?'Player age':'Season of career (1st, 2nd, 3rd …)');
     gAx.append('text').attr('class','axlab').attr('transform',`translate(13,${(aT+aB)/2}) rotate(-90)`).attr('text-anchor','middle').text(yLab());
     // sample the background field once (~2k strands) so 12 panels stay snappy with ~19k players
@@ -724,6 +729,7 @@ function LineChart(sel){
     list.forEach((s,idx)=>{const ci=idx%cols,ri=Math.floor(idx/cols);
       const cx=aL+ci*(cellW+gx),cy=aT+ri*(cellH+gy),px0=cx,px1=cx+cellW,py0=cy+nameH,py1=cy+cellH;
       const xs=v=>px0+(v-xd[0])/(xd[1]-xd[0])*(px1-px0),ys=v=>py1-(v-yd[0])/(yd[1]-yd[0])*(py1-py0);
+      facetCells.push({k:s.k,color:s.color,xs,ys,px0,px1,py0,py1});
       ctx.save();ctx.beginPath();ctx.rect(px0,py0,Math.max(0,px1-px0),Math.max(0,py1-py0));ctx.clip();
       ctx.strokeStyle=CLOUD;ctx.globalAlpha=.16;ctx.lineWidth=1;
       for(let pi=0;pi<cloudP.length;pi+=stride){const p=cloudP[pi];if(p.k===s.k)continue;const c=dataOf(p);ctx.beginPath();let st=false;
@@ -734,8 +740,7 @@ function LineChart(sel){
       const pts=dataOf(P[s.k]).filter(pt=>xv(pt)!=null);
       if(pts.length){let d='';pts.forEach((pt,i)=>{d+=(i?'L':'M')+xs(xv(pt)).toFixed(1)+' '+ys(pt[1]).toFixed(1);});
         gStar.append('path').attr('d',d).attr('fill','none').attr('stroke',s.color).attr('stroke-width',2).style('pointer-events','none');
-        pts.forEach(pt=>gStar.append('circle').attr('cx',xs(xv(pt))).attr('cy',ys(pt[1])).attr('r',2.3).attr('fill',s.color).attr('stroke','#fff').attr('stroke-width',.8).style('cursor','pointer')
-          .on('mousemove',e=>showTip(`<div class="nm" style="color:${s.color}">${s.name}</div><div class="row">${xmode==='age'?'Age '+pt[2]:'Season '+pt[0]} · <b>${fmtV(pt[1])}</b> WAR/162</div>`,e.clientX,e.clientY)).on('mouseleave',hideTip));
+        pts.forEach(pt=>gStar.append('circle').attr('cx',xs(xv(pt))).attr('cy',ys(pt[1])).attr('r',2.3).attr('fill',s.color).attr('stroke','#fff').attr('stroke-width',.8).style('pointer-events','none'));
         gLab.append('text').attr('x',px0+1).attr('y',cy+11).attr('fill',s.color).attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',12).text(`${s.name} (${fmtV(pts[pts.length-1][1])})`);
       }else gLab.append('text').attr('x',px0+1).attr('y',cy+11).attr('fill',s.color).attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',12).text(s.name);});
     if(all.length>FCAP)gLab.append('text').attr('x',aR).attr('y',aT-2).attr('text-anchor','end').attr('font-family',"'Gill Sans',sans-serif").attr('font-size',11).attr('fill','#9AA0A8').text(`showing ${FCAP} of ${all.length}`);}
@@ -743,9 +748,22 @@ function LineChart(sel){
   function valAt(p,xq){const c=dataOf(p);
     if(xmode==='age'){for(let i=0;i<c.length;i++){if(c[i][2]===xq)return c[i][1];if(c[i][2]>xq)break;}return null;}
     return (xq>=1&&xq<=c.length)?c[xq-1][1]:null;}
-  let sliceRAF=null,lastMX=null;
-  function move(ev){if(shape==='best'||faceting())return;lastMX=d3.pointer(ev,svg.node())[0];
-    if(sliceRAF)return;sliceRAF=requestAnimationFrame(()=>{sliceRAF=null;drawSlice(lastMX);});}
+  let sliceRAF=null,lastMX=null,lastMY=null,facetCells=[],facetLay=null;
+  function move(ev){if(shape==='best')return;const pt=d3.pointer(ev,svg.node());lastMX=pt[0];lastMY=pt[1];
+    if(sliceRAF)return;sliceRAF=requestAnimationFrame(()=>{sliceRAF=null;faceting()?facetSlice(lastMX,lastMY):drawSlice(lastMX);});}
+  // faceted hover: one synchronized vertical cursor at the same career season/age across every panel
+  function facetSlice(mx){gSlice.selectAll('*').remove();hideTip();
+    if(!facetCells.length||!facetLay)return;
+    const {aL,cellW,gx,cols,xd}=facetLay;
+    let ci=Math.floor((mx-aL)/(cellW+gx));ci=Math.max(0,Math.min(cols-1,ci));
+    const colX0=aL+ci*(cellW+gx);let frac=(mx-colX0)/cellW;frac=Math.max(0,Math.min(1,frac));
+    const xq=Math.round(xd[0]+frac*(xd[1]-xd[0]));
+    for(const c of facetCells){const lx=c.xs(xq);
+      gSlice.append('line').attr('x1',lx).attr('x2',lx).attr('y1',c.py0).attr('y2',c.py1).attr('stroke','#9AA0A8').attr('stroke-width',1).attr('stroke-dasharray','3 3');
+      const v=valAt(P[c.k],xq);if(v==null)continue;const vy=c.ys(v),rt=lx<(c.px0+c.px1)/2;
+      gSlice.append('circle').attr('cx',lx).attr('cy',vy).attr('r',3.6).attr('fill',c.color).attr('stroke','#fff').attr('stroke-width',1.2);
+      gSlice.append('text').attr('x',lx+(rt?5:-5)).attr('y',vy-6).attr('text-anchor',rt?'start':'end').attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',11).attr('paint-order','stroke').attr('stroke','#fff').attr('stroke-width',2.5).attr('fill',c.color).text(fmtV(v));}
+    gSlice.append('text').attr('x',colX0+cellW/2).attr('y',11).attr('text-anchor','middle').attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',11).attr('fill','#5A5A5A').text(xmode==='age'?'Age '+xq:'Season '+xq);}
   function drawSlice(mx){gSlice.selectAll('*').remove();hideTip();
     const lo=xmode==='age'?AGE_LO:1,hi=xmode==='age'?AGE_HI:curMaxSeason;
     const xq=Math.max(lo,Math.min(hi,Math.round(x.invert(mx)))),px=x(xq);
