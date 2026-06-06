@@ -672,6 +672,9 @@ function LineChart(sel){
     ctx.globalAlpha=1;ctx.restore();
     const sp=visSeries().map(s=>({s,p:P[s.k],pts:dataOf(P[s.k])}));
     gStar.selectAll('path').data(sp,d=>d.s.k).join('path').attr('fill','none').attr('stroke',d=>d.s.color).attr('stroke-width',2.4).style('pointer-events','none').attr('d',d=>gen()(d.pts));
+    // a dot at every season's value on each highlighted strand
+    sp.forEach(d=>d.pts.forEach(pt=>{const xx=xv(pt);if(xx==null)return;
+      gStar.append('circle').attr('cx',x(xx)).attr('cy',y(pt[1])).attr('r',2.6).attr('fill',d.s.color).attr('stroke','#fff').attr('stroke-width',1).style('pointer-events','none');}));
     sp.forEach(d=>{const pts=d.pts.filter(pt=>xv(pt)!=null);if(!pts.length)return;const last=pts[pts.length-1],first=pts[0];
       gLab.append('text').attr('x',x(xv(last))+7).attr('y',y(last[1])).attr('dy','.32em').attr('fill',d.s.color).attr('font-family','Futura,sans-serif').attr('font-weight','bold').attr('font-size',12.5).style('pointer-events','none').text(`${d.s.name} (${fmtV(last[1])})`);
       gLab.append('circle').attr('cx',x(xv(first))).attr('cy',y(first[1])).attr('r',3).attr('fill',d.s.color).style('pointer-events','none');});
