@@ -140,7 +140,7 @@
 <div id="progress"></div>
 <nav>
   <span class="brand">Ohtani <span class="o">WAR</span></span>
-  <a href="#map">Map</a><a href="#window">Stretch the Peak</a><a href="#career">Career</a>
+  <a href="#map">Map</a><a href="#window">Stretch the Peak</a><a href="#best">Best Seasons</a><a href="#career">Career</a>
   <a href="#arc">Career Arc</a><a href="#ledger">Ledger</a>
 </nav>
 <div id="controls">
@@ -241,8 +241,28 @@
 </section>
 <div class="divider"></div>
 
+<section id="best">
+  <div class="eyebrow reveal">03 — Best Seasons, Any Order</div>
+  <h2 class="reveal">The Best Seasons, Period</h2>
+  <p class="reveal">Same machine as above — but the seasons no longer have to be back to back. <strong>Drag the slider</strong>
+     and every player is ranked by the average of their <em>best N seasons</em>, wherever those years fall. Players whose
+     greatest years came in bursts separated by ordinary ones — <strong>Cal Ripken</strong> is the classic case — rise here
+     in a way the consecutive-run view hides. At one season it's simply each player's single best year.</p>
+  <div class="sliderwrap reveal">
+    <div class="sliderhead"><span class="n" id="bestN">1</span><span class="nlbl" id="bestNlbl">season</span>
+      <button class="playbtn" id="bestPlay" style="margin-left:auto">▶ Play</button></div>
+    <input type="range" id="bestSlider" min="1" max="26" value="1" step="1">
+  </div>
+  <div class="combo reveal">
+    <div class="lolli"><div class="panel-h">Best N seasons · search or scroll ↓</div><div id="l-best"></div></div>
+    <div><div class="panel-h">Two-way space · one point per player</div><div class="chart" id="c-best"></div></div>
+  </div>
+  <figcaption class="reveal">Each point is one player: the average of their N best seasons (WAR/162), chosen in any order. The year range shows the span those seasons fall across — it need not be continuous. <strong>⌘/Ctrl-scroll or the ＋/− buttons to zoom, drag to pan, double-click to reset.</strong></figcaption>
+</section>
+<div class="divider"></div>
+
 <section id="career">
-  <div class="eyebrow reveal">03 — A Whole Career</div>
+  <div class="eyebrow reveal">04 — A Whole Career</div>
   <h2 class="reveal">A Whole Career's Value</h2>
   <p class="reveal"><strong>Per season</strong> is career WAR/162 divided by seasons played — a rate that rewards peak quality;
      <span class="r">Ruth</span> is the benchmark, <span class="b">Bonds</span> 3rd on hitting alone, <span class="o">Ohtani</span>
@@ -261,7 +281,7 @@
 <div class="divider"></div>
 
 <section id="arc">
-  <div class="eyebrow reveal">04 — The Career Arc</div>
+  <div class="eyebrow reveal">05 — The Career Arc</div>
   <h2 class="reveal">A Career, Adding Up</h2>
   <p class="reveal">Cumulative WAR per 162, season by season, for <em>every</em> player since 1871. Here's the honest limit
      of the comparison: <span class="o">Ohtani</span> does <em>not</em> climb steepest, and will almost certainly never catch
@@ -281,7 +301,7 @@
 <div class="divider"></div>
 
 <section id="ledger">
-  <div class="eyebrow reveal">05 — The Ledger</div>
+  <div class="eyebrow reveal">06 — The Ledger</div>
   <h2 class="reveal">Who Owns Each Length of Peak?</h2>
   <p class="reveal">For every window from one season to twenty, the all-time rank of each elite player's best run.
      Only <span class="r">Ruth</span> and Walter Johnson are ever No. 1.</p>
@@ -330,7 +350,7 @@ let MIN_YEAR=Infinity,MAX_YEAR=-Infinity;
 for(const p of P){if(!p.n)continue;if(p.y[0]<MIN_YEAR)MIN_YEAR=p.y[0];if(p.y[p.n-1]>MAX_YEAR)MAX_YEAR=p.y[p.n-1];
   let mr=0;for(const run of p.runs)if(run[1]>mr)mr=run[1];p.maxRun=mr;p.startY=p.y[0];p.endY=p.y[p.n-1];}
 let beginMin=MIN_YEAR,endMin=MIN_YEAR;          // include if career started >= beginMin AND ended >= endMin
-let clampWin=null;                              // assigned by the window-slider setup; called on era change
+let clampWin=null,clampBest=null;               // assigned by the slider setups; called on era change
 
 // ---- PED associations: Baseball Almanac (steroid suspensions) + ESPN ("notable players linked to PEDs") ----
 const PED_PLAYERS=[["Abraham Almonte", 2013], ["Adalberto Mondesí", 2016], ["Agustín Montero", 2006], ["Alec Asher", 2015], ["Alex Colomé", 2013], ["Alex Rodriguez", 1994], ["Alex Sánchez", 2001], ["Andrew McKirahan", 2015], ["Andy Pettitte", 1995], ["Antonio Bastardo", 2009], ["Barry Bonds", 1986], ["Bartolo Colón", 1997], ["Benito Santiago", 1986], ["Bret Boone", 1992], ["Brian Roberts", 2001], ["Carlos Almánzar", 1997], ["Carlos Martínez", 2013], ["Chris Colabello", 2013], ["Chuck Finley", 1986], ["Chuck Knoblauch", 1991], ["Cody Stanley", 2015], ["Dan Serafini", 1996], ["Daniel Stumpf", 2016], ["David Justice", 1989], ["David Ortiz", 1997], ["David Paulino", 2016], ["David Rollins", 2015], ["Dee Strange-Gordon", 2011], ["Edgar Santana", 2017], ["Edinson Vólquez", 2005], ["Eliézer Alfonzo", 2006], ["Emmanuel Clase", 2019], ["Eric Skoglund", 2017], ["Ervin Santana", 2005], ["Everth Cabrera", 2009], ["Fautino De Los Santos", 2011], ["Fernando Martínez", 2009], ["Fernando Tatis Jr.", 2019], ["Francis Martes", 2017], ["Francisco Cervelli", 2008], ["Frankie Montas", 2015], ["Freddy Galvis", 2012], ["Félix Heredia", 1996], ["Gary Sheffield", 1988], ["Gregory Santos", 2021], ["Guillermo Mota", 1999], ["Héctor Santiago", 2011], ["Iván Rodríguez", 1991], ["J.C. Mejía", 2021], ["J.C. Romero", 1999], ["Jamal Strong", 2003], ["Jason Giambi", 1995], ["Jason Grimsley", 1989], ["Jay Gibbons", 2001], ["Jenrry Mejía", 2010], ["Jesús Montero", 2011], ["Jhonny Peralta", 2003], ["Johan Rojas", 2023], ["Jordan Norberto", 2010], ["Jordany Valdespin", 2012], ["Jorge Bonifacio", 2017], ["Jorge Piedra", 2004], ["Jorge Polanco", 2014], ["Josh Ravin", 2015], ["José Alvarado", 2017], ["José Canseco", 1985], ["José Guillén", 1997], ["Juan González", 1989], ["Juan Rincón", 2001], ["Juan Salas", 2006], ["Jurickson Profar", 2012], ["Ken Caminiti", 1987], ["Kevin Brown", 1986], ["Lenny Dykstra", 1985], ["Magglio Ordóñez", 1997], ["Manny Ramirez", 1993], ["Mark McGwire", 1986], ["Marlon Byrd", 2002], ["Matt Lawton", 1995], ["Matt Williams", 1987], ["Max Kepler", 2015], ["Melky Cabrera", 2005], ["Michael Pineda", 2011], ["Miguel Tejada", 1997], ["Mike Cameron", 1995], ["Mike Jacobs", 2005], ["Mike Marjama", 2017], ["Mike Morse", 2005], ["Mo Vaughn", 1991], ["Neifi Pérez", 1996], ["Nelson Cruz", 2005], ["Noelvi Marte", 2023], ["Orelvis Martinez", 2024], ["Pablo Ozuna", 2000], ["Paul Campbell", 2021], ["Pedro Severino", 2015], ["Rafael Betancourt", 2003], ["Rafael Palmeiro", 1986], ["Ramón Laureano", 2018], ["Raudy Read", 2017], ["Robinson Canó", 2005], ["Roger Clemens", 1984], ["Ronny Paulino", 2005], ["Ryan Braun", 2007], ["Ryan Franklin", 1999], ["Ryan Jorgensen", 2005], ["Sammy Sosa", 1989], ["Sergio Escalona", 2009], ["Sergio Mitre", 2003], ["Starling Marte", 2012], ["Steven Wright", 2013], ["Tim Beckham", 2013], ["Troy Glaus", 1998], ["Troy Patton", 2007], ["Victor Alcántara", 2017], ["Wally Joyner", 1986], ["Welington Castillo", 2010], ["Yasmani Grandal", 2012], ["Éric Gagné", 1999]];
@@ -396,6 +416,14 @@ function windows(N){if(winCache[N])return winCache[N];const arr=[];
       for(const r of t)if(d.j<=r[1]&&r[0]<=d.j+N-1){ok=false;break;}
       if(ok){t.push([d.j,d.j+N-1]);out.push(d);}}}
   out.forEach((d,i)=>d.rank=i+1);winCache[N]=out;return out;}
+let bestCache={};   // best N seasons per player, in ANY order (non-consecutive); one entry per player
+function bestN(N){if(bestCache[N])return bestCache[N];const arr=[];
+  for(const p of P){if(!incl(p)||p.n<N)continue;
+    const idx=p.b.map((_,i)=>i).sort((i,j)=>(p.b[j]+p.w[j])-(p.b[i]+p.w[i])).slice(0,N);   // top N seasons by total WAR
+    let b=0,w=0,s=0,a=Infinity,z=-Infinity;
+    for(const i of idx){b+=p.b[i];w+=p.w[i];s+=p.s[i];if(p.y[i]<a)a=p.y[i];if(p.y[i]>z)z=p.y[i];}
+    arr.push({k:p.k,b:b/N,w:w/N,sz:s/N,tot:(b+w)/N,a,z});}
+  arr.sort((a,b)=>b.tot-a.tot);arr.forEach((d,i)=>d.rank=i+1);bestCache[N]=arr;return arr;}
 let careerCache=null,careerCacheMode=null,careerMode='rate';   // 'rate' = WAR/162 per season, 'total' = total career WAR/162
 function careers(){if(careerCache&&careerCacheMode===careerMode)return careerCache;
   const total=careerMode==='total';
@@ -676,6 +704,27 @@ function setOverlap(on){if(on===overlapMode)return;overlapMode=on;winCache={};wi
   t.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
     t.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));setOverlap(b.dataset.ov==='1');});})();
 
+// ---- Best N seasons (any order) ----
+let curBN=1;
+const bestTip=d=>`<div class="nm" style="color:${(seriesOf(d.k)||{}).color||'#111'}">${P[d.k].name} ${span(d.a,d.z)}</div><div class="row">Rank <b>#${d.rank}</b> of ${bestN(curBN).length} · avg WAR/162 <b>${d.tot.toFixed(1)}</b></div><div class="row">Bat ${d.b.toFixed(1)} · Pit ${d.w.toFixed(1)} · BsR ${d.sz.toFixed(1)}</div>`;
+const bestBubble=ScatterView('#c-best',{compute:()=>bestN(curBN),px:d=>d.b,py:d=>d.w,sz:d=>d.sz,sized:true,sizeMax:15,sizeRange:11,
+  square:true,zero:true,xDom:[-5,16],yDom:[-5,16],xLab:'Batting WAR per 162 games',yLab:'Pitching WAR per 162 games',
+  label:true,labSize:11,labelText:d=>P[d.k].name.split(' ').slice(-1)[0],tip:bestTip});
+const bestLol=Lollipop('#l-best',{compute:()=>bestN(curBN),row:d=>({k:d.k,name:P[d.k].name,val:d.tot,rank:d.rank,yr:span(d.a,d.z),a:d.a,z:d.z}),
+  maxVal:16,labelW:196,valName:'avg WAR/162',onPick:r=>bestBubble.pin(r)});
+(function(){const slider=document.getElementById('bestSlider'),nEl=document.getElementById('bestN'),nLbl=document.getElementById('bestNlbl'),play=document.getElementById('bestPlay');
+  slider.max=M.maxSeason;let raf=null;
+  function lbl(N){nEl.textContent=N;nLbl.textContent=N===1?'season':'seasons';}
+  function setN(N){curBN=N;lbl(N);
+    if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{bestBubble.redraw();bestLol.redraw();});}
+  slider.addEventListener('input',()=>setN(+slider.value));
+  // clamp to the longest available career under the current era filter (no redraw — refreshEra redraws)
+  clampBest=function(){const mx=Math.max(1,curMaxSeason);slider.max=mx;if(+slider.value>mx)slider.value=mx;curBN=+slider.value;lbl(curBN);};
+  let timer=null;play.addEventListener('click',()=>{if(timer){clearInterval(timer);timer=null;play.textContent='▶ Play';return;}
+    play.textContent='❚❚ Pause';if(+slider.value>=+slider.max)slider.value=1;
+    timer=setInterval(()=>{let v=+slider.value;if(v>=+slider.max){clearInterval(timer);timer=null;play.textContent='▶ Play';return;}slider.value=v+1;setN(v+1);},760);});
+})();
+
 const carTip=d=>`<div class="nm" style="color:${(seriesOf(d.k)||{}).color||'#111'}">${P[d.k].name}</div><div class="row">Career rank <b>#${d.rank}</b> · ${d.n} yr (${span(d.a,d.z)})</div><div class="row">Bat ${d.b.toFixed(1)} · Pit ${d.w.toFixed(1)} · BsR ${d.sz.toFixed(1)} ${careerMode==='total'?'(career)':'/yr'}</div>`;
 const carBubble=ScatterView('#c-career',{compute:careers,px:d=>d.b,py:d=>d.w,sz:d=>d.sz,sized:true,sizeMax:6,sizeRange:11,
   square:true,zero:true,xDom:[-2,10],yDom:[-2,10],xLab:'Batting WAR per season',yLab:'Pitching WAR per season',
@@ -711,8 +760,8 @@ function updateLiveRank(){const ok=M.starsIdx.Ohtani,w1=windows(1);let e=null;
 updateLiveRank();
 
 // ---- era-filter refresh: invalidate caches, recompute maxes, redraw everything ----
-function refreshEra(){winCache={};careerCache=null;for(const p of P)p._cum=null;
-  recomputeMaxes();if(clampWin)clampWin();listeners.forEach(f=>f());updateLiveRank();buildTable(true);}
+function refreshEra(){winCache={};bestCache={};careerCache=null;for(const p of P)p._cum=null;
+  recomputeMaxes();if(clampWin)clampWin();if(clampBest)clampBest();listeners.forEach(f=>f());updateLiveRank();buildTable(true);}
 function setEra(bMin,eMin){bMin=Math.round(bMin);eMin=Math.round(eMin);
   if(bMin===beginMin&&eMin===endMin)return;beginMin=bMin;endMin=eMin;refreshEra();}
 (function(){const sS=document.getElementById('eraStart'),sE=document.getElementById('eraEnd'),
