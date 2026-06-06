@@ -65,12 +65,13 @@
   p{margin:0 0 16px;color:#1c1c1c;max-width:70ch;}
   .o{color:var(--ohtani);font-weight:bold}.r{color:var(--ruth);font-weight:bold}.b{color:var(--bonds);font-weight:bold}
   /* hero: the ink-wash piece fills the background; the title is overlaid on a soft parchment scrim */
-  header.hero{position:relative;max-width:none;min-height:94vh;display:flex;flex-direction:column;justify-content:flex-start;
-    align-items:center;text-align:center;padding:118px 26px 48px;overflow:hidden;background:#F0E9DA;}
-  .hero-bg{position:absolute;inset:0;z-index:0;background:url('web/background.jpg') no-repeat center center;background-size:cover;
-    -webkit-mask-image:linear-gradient(to bottom,#000 86%,transparent);mask-image:linear-gradient(to bottom,#000 86%,transparent);}
+  /* hero height tracks the wide triptych's ~16:9 ratio so the whole piece fits with minimal crop */
+  header.hero{position:relative;max-width:none;min-height:clamp(500px,56vw,820px);display:flex;flex-direction:column;justify-content:flex-start;
+    align-items:center;text-align:center;padding:104px 26px 40px;overflow:hidden;background:#F0E9DA;}
+  .hero-bg{position:absolute;inset:0;z-index:0;background:url('web/background.png') no-repeat center center;background-size:cover;
+    -webkit-mask-image:linear-gradient(to bottom,#000 90%,transparent);mask-image:linear-gradient(to bottom,#000 90%,transparent);}
   .hero-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:linear-gradient(to bottom,rgba(240,233,218,.92) 2%,rgba(240,233,218,.5) 14%,rgba(240,233,218,0) 30%,rgba(240,233,218,0) 82%,#fff 100%);}
+    background:linear-gradient(to bottom,rgba(240,233,218,.92) 2%,rgba(240,233,218,.5) 14%,rgba(240,233,218,0) 28%,rgba(240,233,218,0) 88%,#fff 100%);}
   header.hero .eyebrow,header.hero h1,header.hero .accentbar,header.hero .sub,header.hero .scrollcue{position:relative;z-index:2;}
   header.hero h1{font-size:clamp(40px,7.6vw,96px);letter-spacing:-.02em;margin-bottom:6px;}
   header.hero h1 .o{color:var(--ohtani)}header.hero h1 .r{color:var(--ruth)}header.hero h1 .b{color:var(--bonds)}
@@ -148,7 +149,9 @@
   footer{max-width:1040px;margin:34px auto 0;padding:36px 26px 80px;border-top:1px solid var(--line);color:var(--faint);font-size:14px;}
   footer b{color:var(--sub);}
   @media(max-width:640px){body{font-size:16.5px}nav .brand,#controls .cap{display:none}
-    .hero-bg{background-size:contain;background-position:center 60%;}}
+    header.hero{min-height:auto;padding:96px 22px 36px;}
+    /* contain keeps all three figures visible; the letterbox blends into the matching parchment bg */
+    .hero-bg{background-size:contain;background-position:center 64%;}}
 
   /* "What is WAR?" — nav button, hero spell-out line, and the explainer modal */
   .nav-help{font-family:var(--display);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;
