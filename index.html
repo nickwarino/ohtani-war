@@ -65,11 +65,14 @@
   p{margin:0 0 16px;color:#1c1c1c;max-width:70ch;}
   .o{color:var(--ohtani);font-weight:bold}.r{color:var(--ruth);font-weight:bold}.b{color:var(--bonds);font-weight:bold}
   header.hero{max-width:none;min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;
-    text-align:center;padding:140px 26px 60px;background:radial-gradient(1200px 620px at 50% -10%,#EAF1FB,#fff 60%);}
+    text-align:center;padding:128px 26px 40px;background:radial-gradient(1100px 720px at 50% 4%,#F4EEE0,#F0E9DA 46%,#FAF6EE 76%,#fff 100%);}
   header.hero h1{font-size:clamp(40px,7.6vw,96px);letter-spacing:-.02em;margin-bottom:6px;}
   header.hero h1 .o{color:var(--ohtani)}header.hero h1 .r{color:var(--ruth)}header.hero h1 .b{color:var(--bonds)}
-  header.hero .accentbar{height:6px;width:90px;background:var(--ohtani);border-radius:3px;margin:18px auto 24px;}
+  header.hero .accentbar{height:6px;width:90px;background:var(--ohtani);border-radius:3px;margin:18px auto 22px;}
   header.hero .sub{font-size:clamp(18px,2.3vw,23px);color:var(--sub);max-width:34ch;margin:0 auto;}
+  /* the ink-wash piece (Ohtani · Ruth · Bonds) sits on matching parchment; bottom fades into the page */
+  .heroart{display:block;width:min(560px,88vw);height:auto;margin:34px auto 0;
+    -webkit-mask-image:linear-gradient(to bottom,#000 84%,transparent 99%);mask-image:linear-gradient(to bottom,#000 84%,transparent 99%);}
   .scrollcue{margin-top:40px;font-family:var(--display);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);animation:bob 1.8s ease-in-out infinite;}
   @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
 
@@ -181,6 +184,8 @@
   <h1 class="reveal">Ohtani WAR</h1>
   <div class="accentbar reveal"></div>
   <p class="sub reveal">Contextualizing the most singular career in baseball history, measured against the other GOATs: <span class="r">Babe Ruth</span> and <span class="b">Barry Bonds</span>.</p>
+  <img class="heroart reveal" src="web/background.jpg" width="1122" height="1402" loading="eager" decoding="async"
+       alt="Ink-wash illustration of Shohei Ohtani, Babe Ruth, and Barry Bonds at bat, each with their signature stats and equations.">
   <div class="scrollcue reveal">scroll ↓</div>
 </header>
 
