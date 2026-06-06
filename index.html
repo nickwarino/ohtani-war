@@ -66,11 +66,11 @@
   .o{color:var(--ohtani);font-weight:bold}.r{color:var(--ruth);font-weight:bold}.b{color:var(--bonds);font-weight:bold}
   /* hero: the ink-wash piece fills the background; the title is overlaid on a soft parchment scrim */
   header.hero{position:relative;max-width:none;min-height:94vh;display:flex;flex-direction:column;justify-content:flex-start;
-    align-items:center;text-align:center;padding:118px 26px 48px;overflow:hidden;background:#EDE5D8;}
-  .hero-bg{position:absolute;inset:0;z-index:0;background:url('web/background2.jpg') no-repeat center 64%;background-size:contain;
-    -webkit-mask-image:linear-gradient(to bottom,#000 88%,transparent);mask-image:linear-gradient(to bottom,#000 88%,transparent);}
+    align-items:center;text-align:center;padding:118px 26px 48px;overflow:hidden;background:#F0E9DA;}
+  .hero-bg{position:absolute;inset:0;z-index:0;background:url('web/background.jpg') no-repeat center center;background-size:cover;
+    -webkit-mask-image:linear-gradient(to bottom,#000 86%,transparent);mask-image:linear-gradient(to bottom,#000 86%,transparent);}
   .hero-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:linear-gradient(to bottom,rgba(237,229,216,.92) 2%,rgba(237,229,216,.5) 13%,rgba(237,229,216,0) 27%,rgba(237,229,216,0) 82%,#fff 100%);}
+    background:linear-gradient(to bottom,rgba(240,233,218,.92) 2%,rgba(240,233,218,.5) 14%,rgba(240,233,218,0) 30%,rgba(240,233,218,0) 82%,#fff 100%);}
   header.hero .eyebrow,header.hero h1,header.hero .accentbar,header.hero .sub,header.hero .scrollcue{position:relative;z-index:2;}
   header.hero h1{font-size:clamp(40px,7.6vw,96px);letter-spacing:-.02em;margin-bottom:6px;}
   header.hero h1 .o{color:var(--ohtani)}header.hero h1 .r{color:var(--ruth)}header.hero h1 .b{color:var(--bonds)}
@@ -146,7 +146,8 @@
   .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s,transform .7s;}.reveal.in{opacity:1;transform:none;}
   footer{max-width:1040px;margin:34px auto 0;padding:36px 26px 80px;border-top:1px solid var(--line);color:var(--faint);font-size:14px;}
   footer b{color:var(--sub);}
-  @media(max-width:640px){body{font-size:16.5px}nav .brand,#controls .cap{display:none}}
+  @media(max-width:640px){body{font-size:16.5px}nav .brand,#controls .cap{display:none}
+    .hero-bg{background-size:contain;background-position:center 60%;}}
 </style>
 </head>
 <body>
