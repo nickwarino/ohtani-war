@@ -150,6 +150,22 @@
   .scrollcue{font-family:var(--display);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
     color:var(--faint);text-align:center;padding:7px 0 0;}
 
+  /* team-season profile */
+  .prbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;}
+  .prlead{border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    padding:13px 0 14px;margin:0 0 6px;}
+  .prlead .pw{font-family:var(--display);font-weight:bold;font-size:clamp(20px,2.6vw,27px);
+    line-height:1.1;margin:0 0 3px;}
+  .prlead .pd{font-size:15.5px;color:var(--sub);}
+  .prlead .pd b{color:var(--ink);font-variant-numeric:tabular-nums;}
+  .prlead .pd .rk{color:var(--h1);font-family:var(--display);font-weight:bold;}
+  .prwait{color:var(--faint);font-size:14px;padding:26px 0;}
+  #prleg{display:flex;gap:13px;flex-wrap:wrap;}
+  .lgi{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--sub);white-space:nowrap;}
+  .lgi i{width:10px;height:10px;border-radius:50%;flex:none;}
+  #prchart svg{display:block;width:100%;}
+  #prchart{position:relative;}
+
   .scatwrap{position:relative;}
   .scatwrap canvas{position:absolute;top:0;left:0;pointer-events:none;}
   .scatwrap svg{display:block;width:100%;position:relative;z-index:1;}
@@ -189,6 +205,7 @@
     <a href="#record">Best records</a>
     <a href="#climb">Biggest climbs</a>
     <a href="#both">Record vs. climb</a>
+    <a href="#season">One season</a>
   </div>
   <a href="index.html" class="navlinks" style="border-left:1px solid var(--line);margin-left:5px;padding-left:11px;">&larr; Ohtani WAR</a>
   <a href="#" id="sharetop" style="border:1.5px solid var(--line);border-radius:30px;margin-left:8px;">Share view</a>
@@ -320,6 +337,42 @@
   </div>
 </section>
 
+<section id="season">
+  <h2>One club, every window length at once</h2>
+  <p class="sub">A season's best 10 games and its best 100 games are different achievements, and a
+    club can be historic at one length and unremarkable at another. Pick a team season and this
+    walks every window from 10 games up, plotting where that run stands against every other club
+    season on record.</p>
+  <div class="fig">
+    <div class="fighead">
+      <div class="ftitle" id="prtitle">All-time rank at every window length</div>
+      <div class="tools">
+        <button class="tool" data-share="season">Copy link</button>
+        <button class="tool" data-png="season">PNG</button>
+        <button class="tool" data-svg="season">SVG</button>
+      </div>
+    </div>
+    <div class="prbar">
+      <div class="tsearch">
+        <input id="sinput" type="text" placeholder="Find a team season, e.g. 2026 Red Sox"
+               autocomplete="off" spellcheck="false" style="width:288px">
+        <div id="sres"></div>
+      </div>
+      <div class="chips" id="prmode">
+        <button class="chip on" data-m="best">Their best stretch</button>
+        <button class="chip" data-m="last">Their last N games</button>
+      </div>
+      <div id="prleg">
+        <span class="lgi"><i style="background:#1166CC"></i>Rank by record</span>
+        <span class="lgi"><i style="background:#E8772E"></i>Rank by Elo gained</span>
+      </div>
+    </div>
+    <div class="prlead" id="prlead"></div>
+    <div id="prchart"><svg></svg></div>
+    <p class="srcline" id="prsrc"></p>
+  </div>
+</section>
+
 <footer>
   <p><b>How to read this.</b> A "stretch" is any run of consecutive regular-season games inside a
     single season, game 12 through 61, say. Stretches never cross the winter, because Elo resets
@@ -329,6 +382,11 @@
     stretches that share most of the same games. By default the lists hide those near-duplicates and
     show a club's streak once. Flip the switch to see every stretch, which is what the scatterplot's
     full cloud is made of.</p>
+  <p><b>Rank, in the last chart.</b> A club season's rank at a given window length counts every
+    other club season once: 7th at 28 games means six other club seasons had a better 28-game
+    stretch somewhere in their year, not six near-copies of one hot run. The overlap switch above
+    does not change it. Small windows tie heavily (plenty of clubs have gone 10-0), so the headline
+    picks the longest window at which the club ranks highest, which is the harder achievement.</p>
   <p><b>Elo</b> is FiveThirtyEight's rating: every club starts around 1500, wins and losses move the
     number by an amount that depends on the opponent's strength, the margin, and home field. Roughly
     25 points of Elo is worth one win over a full season.</p>
@@ -398,6 +456,12 @@ const NAMEIDX = (function(){
   }
   return m;
 })();
+// every club season, addressable as CODE-YEAR, for the profile picker
+const SEASONIDX = new Map(S.map(s => [s.t + "-" + s.y, s]));
+const SEASONROWS = S.map(s => ({key: s.t + "-" + s.y, label: s.label, y: s.y,
+                                hay: (s.label + " " + s.t + " " + s.short).toLowerCase()}))
+                    .sort((a, b) => b.y - a.y || a.label.localeCompare(b.label));
+
 const SEARCHROWS = (function(){
   const rows = [];
   for (const [code, f] of NAMEIDX) {
@@ -456,7 +520,8 @@ function fit(str, room, size, fallback){
 }
 
 /* ============================ 2. app state ============================ */
-const state = {n: 50, era: 1901, overlap: false, only: false, picks: []};
+const state = {n: 50, era: 1901, overlap: false, only: false, picks: [],
+               season: null, mode: "best"};
 readHash();
 
 // Runs for the current (n, era). Flat typed arrays, one entry per stretch.
@@ -684,8 +749,10 @@ function Lollipop(sel, kind){
         .text(recLabel(j, kind));
       n.select("rect.hit").attr("width", W);
     });
-    all.on("mousemove", (ev, d) => showTip(ev, runInfo(d.j)))
-       .on("mouseleave", hideTip);
+    all.style("cursor", "pointer")
+       .on("mousemove", (ev, d) => showTip(ev, runInfo(d.j)))
+       .on("mouseleave", hideTip)
+       .on("click", (ev, d) => { const s = S[R.s[d.j]]; pickSeason(s.t + "-" + s.y, true); });
   }
 
   return {
@@ -795,7 +862,13 @@ const scat = (function(){
       const g = R.w[j] + R.l[j];
       hov.attr("cx", x(g ? R.w[j] / g : .5)).attr("cy", y(R.g[j] / 10)).style("display", null);
       showTip(ev, runInfo(j));
-    }).on("mouseleave", function(){ hov.style("display", "none"); hideTip(); });
+    }).on("mouseleave", function(){ hov.style("display", "none"); hideTip(); })
+      .on("click", function(ev){
+        const [mx, my] = d3.pointer(ev, this), j = nearest(mx, my);
+        if (j == null) return;
+        const s = S[R.s[j]];
+        pickSeason(s.t + "-" + s.y, true);
+      }).style("cursor", "pointer");
   }
 
   // Shared by the live chart and the export, so the shared image is the same
@@ -923,6 +996,278 @@ function annotate(g, marks, x, y, W, size, nameOf){
   }
 }
 
+/* ================= 4b. one club, every window length ================= */
+/* Rank here always counts a club-season once, whatever the overlap toggle is
+   set to: "14th best 35-game stretch ever" means 13 other club-seasons did
+   better over some 35 games, not 13 slightly-shifted copies of one Cubs run. */
+const MINN = 10;
+let UNIV = null;                                   // rank universe for the current era
+
+function buildUniverse(){
+  const era = state.era;
+  let maxN = 0;
+  for (const s of S) if (s.y >= era && s.n > maxN) maxN = s.n;
+  const rbuf = [], ebuf = [];
+  for (let N = 0; N <= maxN; N++) { rbuf.push(null); ebuf.push(null); }
+  for (let N = MINN; N <= maxN; N++) { rbuf[N] = []; ebuf[N] = []; }
+
+  for (const s of S) {
+    if (s.y < era || s.n < MINN) continue;
+    const n = s.n, cw = s.cw, cl = s.cl, cx = s.cx, top = Math.min(n, maxN);
+    for (let N = MINN; N <= top; N++) {
+      let bk = -1, be = -32768;
+      for (let i = 0, last = n - N; i <= last; i++) {
+        const w = cw[i + N] - cw[i], g = w + (cl[i + N] - cl[i]);
+        const k = g ? ((1000 * w / g + .5) | 0) : 500;
+        if (k > bk) bk = k;
+        const e = cx[i + N] - cx[i];
+        if (e > be) be = e;
+      }
+      rbuf[N].push(bk); ebuf[N].push(be);
+    }
+  }
+  const rec = [], elo = [];
+  for (let N = 0; N <= maxN; N++) {
+    rec.push(rbuf[N] ? Int16Array.from(rbuf[N]).sort() : null);
+    elo.push(ebuf[N] ? Int16Array.from(ebuf[N]).sort() : null);
+  }
+  UNIV = {era, maxN, rec, elo};
+}
+
+// arr is ascending; rank is one more than the number of club-seasons above v
+function rankOf(arr, v){
+  let lo = 0, hi = arr.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] > v) hi = m; else lo = m + 1; }
+  return arr.length - lo + 1;
+}
+
+function profileOf(s, mode){
+  const rows = [], n = s.n, cw = s.cw, cl = s.cl, cx = s.cx;
+  const top = Math.min(n, UNIV.maxN);
+  for (let N = MINN; N <= top; N++) {
+    let iR, iE, kr, ke;
+    if (mode === "last") {
+      iR = iE = n - N;
+      const w = cw[n] - cw[iR], g = w + (cl[n] - cl[iR]);
+      kr = g ? ((1000 * w / g + .5) | 0) : 500;
+      ke = cx[n] - cx[iR];
+    } else {
+      iR = iE = 0; kr = -1; ke = -32768;
+      for (let i = 0, last = n - N; i <= last; i++) {
+        const w = cw[i + N] - cw[i], g = w + (cl[i + N] - cl[i]);
+        const k = g ? ((1000 * w / g + .5) | 0) : 500;
+        if (k > kr) { kr = k; iR = i; }
+        const e = cx[i + N] - cx[i];
+        if (e > ke) { ke = e; iE = i; }
+      }
+    }
+    rows.push({N, iR, iE, kr, ke,
+               rankR: rankOf(UNIV.rec[N], kr),
+               rankE: rankOf(UNIV.elo[N], ke),
+               pool: UNIV.rec[N].length});
+  }
+  return rows;
+}
+
+function bestRow(rows, key){
+  return rows.reduce((a, b) => (b[key] < a[key] || (b[key] === a[key] && b.N > a.N)) ? b : a);
+}
+function winCount(s, i, N){
+  const w = s.cw[i + N] - s.cw[i], l = s.cl[i + N] - s.cl[i];
+  return {w, l, t: N - w - l};
+}
+function ord(n){
+  const a = n % 100, b = n % 10;
+  return n + (a >= 11 && a <= 13 ? "th" : b === 1 ? "st" : b === 2 ? "nd" : b === 3 ? "rd" : "th");
+}
+
+const prof = (function(){
+  const box = document.getElementById("prchart");
+  const svg = d3.select(box).select("svg");
+  let rows = [], W = 0, H = 0, x = null, y = null, terse = false;
+  const M = {t: 20, r: 128, b: 48, l: 54};
+  const SERIES = [{key: "rankR", hue: HUE[0], long: "by record", short: "record"},
+                  {key: "rankE", hue: HUE[1], long: "by Elo gained", short: "Elo"}];
+
+  function geom(w, h){
+    W = w; H = h;
+    terse = W < 640;
+    // margins follow the labels that have to fit in them
+    M.r = 18 + d3.max(SERIES, s => textW(terse ? s.short : s.long, 12.5, true));
+    M.l = 14 + Math.max(textW("best ever", 11.5), textW("#3000", 11.5));
+    const maxN = rows.length ? rows[rows.length - 1].N : 162;
+    const worst = Math.max(30, d3.max(rows, r => Math.max(r.rankR, r.rankE)) || 30);
+    x = d3.scaleLinear().domain([MINN, maxN]).range([M.l, W - M.r]);
+    y = d3.scaleLog().domain([1, worst * 1.35]).range([M.t, H - M.b]);
+  }
+
+  function paint(g, forExport){
+    const ink = forExport ? "#0B0B0B" : INK;
+    const lineR = d3.line().x(d => x(d.N)).y(d => y(d.rankR)).curve(d3.curveMonotoneX);
+    const lineE = d3.line().x(d => x(d.N)).y(d => y(d.rankE)).curve(d3.curveMonotoneX);
+
+    // rank gridlines at the round numbers people actually think in
+    for (const t of [1, 3, 10, 30, 100, 300, 1000, 3000]) {
+      if (t > y.domain()[1]) continue;
+      g.append("line").attr("x1", M.l).attr("x2", W - M.r).attr("y1", y(t)).attr("y2", y(t))
+       .attr("stroke", t === 1 ? CLOUD : LINE);
+      g.append("text").attr("x", M.l - 9).attr("y", y(t) + 4).attr("text-anchor", "end")
+       .attr("font-family", forExport ? '"Gill Sans",Helvetica,Arial,sans-serif' : "var(--body)")
+       .attr("font-size", 11.5).attr("fill", FAINT)
+       .text(t === 1 ? "best ever" : "#" + t);
+    }
+    for (const t of x.ticks(Math.max(3, Math.floor((W - M.l - M.r) / 78)))) {
+      if (t < MINN) continue;
+      g.append("text").attr("x", x(t)).attr("y", H - M.b + 20).attr("text-anchor", "middle")
+       .attr("font-family", forExport ? '"Gill Sans",Helvetica,Arial,sans-serif' : "var(--body)")
+       .attr("font-size", 11.5).attr("fill", FAINT).text(t);
+    }
+    g.append("text").attr("x", 0).attr("y", 11)
+     .attr("font-family", forExport ? 'Futura,"Trebuchet MS",sans-serif' : "var(--display)")
+     .attr("font-weight", "bold").attr("font-size", 10.5).attr("letter-spacing", ".1em")
+     .attr("fill", FAINT).text("ALL-TIME RANK, BEST AT TOP");
+    g.append("text").attr("x", W - M.r).attr("y", H - 8).attr("text-anchor", "end")
+     .attr("font-family", forExport ? 'Futura,"Trebuchet MS",sans-serif' : "var(--display)")
+     .attr("font-weight", "bold").attr("font-size", 10.5).attr("letter-spacing", ".1em")
+     .attr("fill", FAINT).text("GAMES IN THE STRETCH →");
+
+    const disp = forExport ? 'Futura,"Trebuchet MS",sans-serif' : "var(--display)";
+    const end = rows[rows.length - 1];
+    for (const sr of SERIES) {
+      g.append("path").datum(rows).attr("fill", "none").attr("stroke", sr.hue)
+       .attr("stroke-width", 2).attr("stroke-linejoin", "round").attr("stroke-linecap", "round")
+       .attr("d", sr.key === "rankR" ? lineR : lineE);
+    }
+    if (!end) return;
+
+    // end labels: nudge apart when the two lines finish on top of each other
+    const ends = SERIES.map(sr => ({sr, ey: y(end[sr.key])})).sort((a, b) => a.ey - b.ey);
+    if (ends[1].ey - ends[0].ey < 15) { ends[0].ey -= (15 - (ends[1].ey - ends[0].ey)) / 2; ends[1].ey = ends[0].ey + 15; }
+    for (const e of ends) {
+      g.append("circle").attr("cx", x(end.N)).attr("cy", y(end[e.sr.key])).attr("r", 4)
+       .attr("fill", e.sr.hue).attr("stroke", "#fff").attr("stroke-width", 2);
+      g.append("text").attr("x", x(end.N) + 10).attr("y", e.ey + 4)
+       .attr("font-family", disp).attr("font-weight", "bold").attr("font-size", 12.5)
+       .attr("fill", ink).text(terse ? e.sr.short : e.sr.long);
+    }
+
+    // the window where this club was at its most historic, per series.
+    // Labels dodge each other AND the marks, since both series often peak at
+    // the same window and the second label would land on the first circle.
+    const picks = SERIES.map(sr => ({sr, best: bestRow(rows, sr.key)}))
+      .filter(o => o.best !== end && o.best[o.sr.key] < end[o.sr.key] * .6);
+    const placed = picks.map(o => ({x: x(o.best.N), y: y(o.best[o.sr.key]), mark: true}));
+    for (const {sr, best} of picks) {
+      const px = x(best.N), py = y(best[sr.key]);
+      let ly = py - 13;
+      while (placed.some(p => Math.abs(p.y - ly) < (p.mark ? 17 : 15) &&
+                              Math.abs(p.x - px) < 110)) ly -= 15;
+      placed.push({x: px, y: ly});
+      g.append("circle").attr("cx", px).attr("cy", py).attr("r", 5)
+       .attr("fill", "none").attr("stroke", sr.hue).attr("stroke-width", 2);
+      if (py - ly > 16) g.append("line").attr("x1", px).attr("x2", px)
+        .attr("y1", py - 7).attr("y2", ly + 4).attr("stroke", sr.hue).attr("opacity", .5);
+      g.append("text").attr("x", px).attr("y", ly).attr("text-anchor", "middle")
+       .attr("font-family", disp).attr("font-weight", "bold").attr("font-size", 12)
+       .attr("fill", ink).text(ord(best[sr.key]) + " at " + best.N);
+    }
+  }
+
+  function draw(){
+    const s = selectedSeason();
+    const lead = document.getElementById("prlead");
+    if (!s) { lead.innerHTML = '<div class="prwait">No club season selected.</div>';
+              svg.selectAll("*").remove(); return; }
+    if (!UNIV || UNIV.era !== state.era) {
+      lead.innerHTML = '<div class="prwait">Ranking every window length…</div>';
+      svg.selectAll("*").remove();
+      setTimeout(() => { buildUniverse(); draw(); }, 16);
+      return;
+    }
+    if (s.y < state.era || s.n < MINN) {
+      lead.innerHTML = '<div class="prwait">' + s.label +
+        ' falls outside the era filter above. Widen it to rank this season.</div>';
+      svg.selectAll("*").remove(); return;
+    }
+    rows = profileOf(s, state.mode);
+
+    // headline: the window where they look most historic
+    const top = bestRow(rows, "rankR");
+    const r = winCount(s, top.iR, top.N);
+    const a = dateOf(s, top.iR), b = dateOf(s, top.iR + top.N - 1);
+    const era = state.era === 1871 ? "ever" : "since " + state.era;
+    lead.innerHTML =
+      '<p class="pw">' + s.label + '</p><p class="pd">' +
+      (state.mode === "last" ? "Over their last " : "Their best ") + top.N +
+      " games: <b>" + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l) +
+      "), " + md(a) + " – " + md(b) + ". That is the <span class='rk'>" + ord(top.rankR) +
+      "-best</span> " + top.N + "-game stretch " + era +
+      ", out of " + top.pool.toLocaleString() + " club seasons.</p>";
+
+    W = box.clientWidth || 900;
+    H = Math.max(340, Math.min(520, Math.round(W * 0.42)));
+    geom(W, H);
+    svg.attr("viewBox", [0, 0, W, H]).attr("width", W).attr("height", H);
+    svg.selectAll("*").remove();
+    const g = svg.append("g");
+    paint(g, false);
+
+    // hover: one crosshair, both series read off it
+    const hv = svg.append("g").style("display", "none");
+    const vl = hv.append("line").attr("stroke", CLOUD).attr("y1", M.t).attr("y2", H - M.b);
+    const d1 = hv.append("circle").attr("r", 5).attr("fill", HUE[0]).attr("stroke", "#fff").attr("stroke-width", 2);
+    const d2 = hv.append("circle").attr("r", 5).attr("fill", HUE[1]).attr("stroke", "#fff").attr("stroke-width", 2);
+    svg.append("rect").attr("x", M.l).attr("y", M.t).attr("width", Math.max(0, W - M.l - M.r))
+      .attr("height", Math.max(0, H - M.t - M.b)).attr("fill", "transparent")
+      .on("mousemove", function(ev){
+        const [mx] = d3.pointer(ev, this);
+        const N = Math.max(MINN, Math.min(rows[rows.length - 1].N, Math.round(x.invert(mx))));
+        const row = rows[N - MINN];
+        if (!row) return;
+        hv.style("display", null);
+        vl.attr("x1", x(row.N)).attr("x2", x(row.N));
+        d1.attr("cx", x(row.N)).attr("cy", y(row.rankR));
+        d2.attr("cx", x(row.N)).attr("cy", y(row.rankE));
+        const rc = winCount(s, row.iR, row.N), ec = winCount(s, row.iE, row.N);
+        const da = dateOf(s, row.iR), db = dateOf(s, row.iR + row.N - 1);
+        tipEl.style.display = "block";
+        tipEl.innerHTML =
+          '<div class="tt">' + row.N + " games</div>" +
+          '<div class="td">' + md(da) + " – " + md(db) + "</div>" +
+          '<div class="tr"><b>' + rc.w + "–" + rc.l + (rc.t ? "–" + rc.t : "") + "</b> (" +
+            pct(rc.w, rc.l) + ") · <b>" + ord(row.rankR) + "</b> all time</div>" +
+          '<div class="tr">Elo <b>' + signed(row.ke / 10) + "</b> (" + ec.w + "–" + ec.l +
+            ") · <b>" + ord(row.rankE) + "</b> all time</div>";
+        placeTip(ev);
+      })
+      .on("mouseleave", () => { hv.style("display", "none"); hideTip(); });
+
+    document.getElementById("prsrc").textContent =
+      "Rank counts each club season once, so a hot run appears one time rather than at every " +
+      "overlapping offset. " + SOURCE;
+  }
+
+  return {update: draw, rowsNow: () => rows, geomFor: geom, paintTo: paint, dims: () => ({W, H, M})};
+})();
+
+function selectedSeason(){
+  if (!state.season) return null;
+  return SEASONIDX.get(state.season) || null;
+}
+// open on the best club of the newest season in view, so the page lands on
+// something current rather than on a club from 1906
+function defaultSeason(){
+  let best = null, bestKey = -1;
+  const yr = d3.max(S, s => s.y >= state.era ? s.y : null);
+  for (const s of S) {
+    if (s.y !== yr || s.n < MINN) continue;
+    const g = s.cw[s.n] + s.cl[s.n];
+    const k = g ? s.cw[s.n] / g : 0;
+    if (k > bestKey) { bestKey = k; best = s; }
+  }
+  return best ? best.t + "-" + best.y : null;
+}
+
 /* ============================ 5. tooltip / toast ============================ */
 const tipEl = document.getElementById("tip");
 function showTip(ev, r){
@@ -933,6 +1278,9 @@ function showTip(ev, r){
     '<div class="tr"><b>' + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l) + ")</div>" +
     '<div class="tr">Elo <b>' + signed(r.gain) + "</b> · " + Math.round(r.eloStart) +
       " → " + Math.round(r.eloEnd) + "</div>";
+  placeTip(ev);
+}
+function placeTip(ev){
   const pad = 14, w = tipEl.offsetWidth, h = tipEl.offsetHeight;
   let lx = ev.clientX + pad, ly = ev.clientY + pad;
   if (lx + w > innerWidth - 8) lx = ev.clientX - w - pad;
@@ -1018,6 +1366,8 @@ let pending = null;
 function refresh(recompute){
   if (recompute) computeRuns(); else cache.clear();
   drawHero(); lolliA.update(); lolliB.update(); scat.update();
+  if (!state.season) state.season = defaultSeason();
+  prof.update();
   titles(); drawPicks(); railSummary(); writeHash();
 }
 function refreshSoon(recompute){
@@ -1099,6 +1449,46 @@ function drawPicks(){
   document.getElementById("onlywrap").style.display = state.picks.length ? "inline-flex" : "none";
 }
 
+/* team-season picker */
+const sin = document.getElementById("sinput"), sres = document.getElementById("sres");
+let shits = [], scur = -1;
+function seasonSearch(){
+  const q = sin.value.trim().toLowerCase();
+  const parts = q.split(/\s+/).filter(Boolean);
+  shits = parts.length ? SEASONROWS.filter(r => parts.every(t => r.hay.includes(t))).slice(0, 10) : [];
+  scur = shits.length ? 0 : -1;
+  sres.innerHTML = shits.map((r, k) =>
+    '<div data-k="' + k + '" class="' + (k === scur ? "sel" : "") + '">' +
+    "<em style='font-style:normal'>" + r.label + "</em></div>").join("");
+  sres.style.display = shits.length ? "block" : "none";
+}
+sin.addEventListener("input", seasonSearch);
+sin.addEventListener("keydown", e => {
+  if (e.key === "ArrowDown") { scur = Math.min(shits.length - 1, scur + 1); spaint(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { scur = Math.max(0, scur - 1); spaint(); e.preventDefault(); }
+  else if (e.key === "Enter" && scur >= 0) pickSeason(shits[scur].key);
+  else if (e.key === "Escape") { sres.style.display = "none"; sin.blur(); }
+});
+function spaint(){ sres.querySelectorAll("div").forEach((d, k) => d.classList.toggle("sel", k === scur)); }
+sres.addEventListener("mousedown", e => {
+  const d = e.target.closest("div[data-k]");
+  if (d) { e.preventDefault(); pickSeason(shits[+d.dataset.k].key); }
+});
+document.addEventListener("click", e => { if (!e.target.closest("#sinput,#sres")) sres.style.display = "none"; });
+
+function pickSeason(key, scroll){
+  if (!SEASONIDX.has(key)) return;
+  state.season = key;
+  sin.value = ""; sres.style.display = "none"; shits = [];
+  prof.update(); writeHash();
+  if (scroll) document.getElementById("season").scrollIntoView({behavior: "smooth", block: "start"});
+}
+document.querySelectorAll("#prmode .chip").forEach(b => b.addEventListener("click", () => {
+  state.mode = b.dataset.m;
+  document.querySelectorAll("#prmode .chip").forEach(o => o.classList.toggle("on", o === b));
+  prof.update(); writeHash();
+}));
+
 // collapsed rail on narrow screens
 document.body.classList.add("rail-shut");
 document.getElementById("railtoggle").addEventListener("click", () => {
@@ -1106,7 +1496,7 @@ document.getElementById("railtoggle").addEventListener("click", () => {
   document.getElementById("railtoggle").textContent = shut ? "Filters" : "Done";
   if (!shut) return;
   // the charts were laid out behind an open rail; re-measure once it folds away
-  requestAnimationFrame(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); scat.update(); });
+  requestAnimationFrame(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); scat.update(); prof.update(); });
 });
 function railSummary(){
   const t = state.picks.length;
@@ -1120,7 +1510,7 @@ function railSummary(){
 let rzT = null;
 addEventListener("resize", () => {
   clearTimeout(rzT);
-  rzT = setTimeout(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); scat.update(); }, 140);
+  rzT = setTimeout(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); scat.update(); prof.update(); }, 140);
 });
 addEventListener("scroll", () => {
   const h = document.documentElement;
@@ -1135,6 +1525,8 @@ function writeHash(){
   if (state.overlap) p.set("ov", 1);
   if (state.only) p.set("only", 1);
   if (state.picks.length) p.set("t", state.picks.join(","));
+  if (state.season) p.set("s", state.season);
+  if (state.mode !== "best") p.set("m", state.mode);
   history.replaceState(null, "", "#" + p.toString());
 }
 function readHash(){
@@ -1144,6 +1536,8 @@ function readHash(){
   state.overlap = p.get("ov") === "1";
   state.only = p.get("only") === "1";
   if (p.has("t")) state.picks = p.get("t").split(",").filter(c => D.franchise[c]).slice(0, 12);
+  if (p.has("s")) state.season = p.get("s");
+  if (p.get("m") === "last") state.mode = "last";
 }
 function syncControls(){
   nslider.value = state.n;
@@ -1154,6 +1548,8 @@ function syncControls(){
     b.classList.toggle("on", +b.dataset.y === state.era));
   ovBox.checked = state.overlap;
   onlyBox.checked = state.only;
+  document.querySelectorAll("#prmode .chip").forEach(b =>
+    b.classList.toggle("on", b.dataset.m === state.mode));
 }
 function copyLink(){
   writeHash();
@@ -1190,9 +1586,13 @@ const EXCSS = `
 `;
 
 function exportChart(kind, fmt, btn){
-  const svg = kind === "scatter" ? exportScatter() : exportLolli(kind);
-  const name = "hot-streaks-" + kind + "-" + state.n + "g-" + state.era +
-               (state.overlap ? "-all" : "") + "." + fmt;
+  const svg = kind === "scatter" ? exportScatter()
+            : kind === "season" ? exportSeason()
+            : exportLolli(kind);
+  const name = kind === "season"
+    ? "hot-streaks-" + (state.season || "season").toLowerCase() + "-" + state.era + "." + fmt
+    : "hot-streaks-" + kind + "-" + state.n + "g-" + state.era +
+      (state.overlap ? "-all" : "") + "." + fmt;
   if (fmt === "svg") {
     download(new Blob([svg.text], {type: "image/svg+xml"}), name);
     flash(btn, "Saved");
@@ -1365,6 +1765,36 @@ function exportScatter(){
   const note = state.overlap ? "Every stretch in the era is plotted." :
     "Overlapping stretches hidden, so each club's streak appears once.";
   g.append("text").attr("class", "src").attr("x", 0).attr("y", yb + 66).text(note + " " + SOURCE);
+  return {text: serialize(doc.node()), w: W, h: H};
+}
+
+function exportSeason(){
+  const W = EX.W, P = EX.PAD, IW = W - P * 2, plotH = 520;
+  const s = selectedSeason(), rows = prof.rowsNow();
+  const doc = d3.create("svg").attr("xmlns", "http://www.w3.org/2000/svg");
+  doc.append("style").text(EXCSS);
+  const headY = 108;
+  const H = 34 + headY + plotH + 44;
+  doc.attr("viewBox", [0, 0, W, H]).attr("width", W).attr("height", H);
+  doc.append("rect").attr("width", W).attr("height", H).attr("fill", "#fff");
+  const g = doc.append("g").attr("transform", "translate(" + P + ",34)");
+
+  const era = state.era === 1871 ? "all-time" : "since " + state.era;
+  const best = rows.length ? bestRow(rows, "rankR") : null;
+  exportHead(g,
+    s ? s.label + ": how historic, at every window length" : "Pick a club season",
+    best ? (state.mode === "last" ? "Their last " : "Their best ") + best.N + " games rank " +
+           ord(best.rankR) + " " + era + ". Higher on the chart is more historic."
+         : "All-time rank at every window length, " + era, IW);
+
+  const plot = g.append("g").attr("transform", "translate(0," + headY + ")");
+  prof.geomFor(IW, plotH);
+  prof.paintTo(plot, true);
+
+  g.append("text").attr("class", "src").attr("x", 0).attr("y", headY + plotH + 30)
+   .text("Rank counts each club season once. " + SOURCE);
+  // put the live chart's own geometry back
+  prof.update();
   return {text: serialize(doc.node()), w: W, h: H};
 }
 
