@@ -205,6 +205,7 @@
     <a href="#record">Best records</a>
     <a href="#climb">Biggest climbs</a>
     <a href="#both">Record vs. climb</a>
+    <a href="#streak">Loss budget</a>
     <a href="#season">One season</a>
   </div>
   <a href="index.html" class="navlinks" style="border-left:1px solid var(--line);margin-left:5px;padding-left:11px;">&larr; Ohtani WAR</a>
@@ -239,6 +240,13 @@
         <button class="chip" data-y="1961">1961</button>
         <button class="chip" data-y="1995">1995</button>
         <button class="chip" data-y="2010">2010</button>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="cap">Runs</span>
+      <div class="chips" id="spans">
+        <button class="chip on" data-sp="season">Within a season</button>
+        <button class="chip" data-sp="career">Across seasons</button>
       </div>
     </div>
     <div class="grp">
@@ -337,6 +345,41 @@
   </div>
 </section>
 
+<section id="streak">
+  <h2>Or hold the losses down and see how far a club got</h2>
+  <p class="sub">Set a loss budget and this finds, for every club, the longest tear it managed
+    inside that budget: no losses at all is the plain winning streak, three losses is the most
+    wins any club ever piled up before its fourth defeat. The window is trimmed to start and end
+    on a win, so the count is the real run.</p>
+  <div class="fig">
+    <div class="fighead">
+      <div class="ftitle" id="lktitle">Most wins allowing 0 losses</div>
+      <div class="tools">
+        <button class="tool" data-share="losses">Copy link</button>
+        <button class="tool" data-png="losses">PNG</button>
+        <button class="tool" data-svg="losses">SVG</button>
+      </div>
+    </div>
+    <div class="prbar">
+      <div class="nwrap">
+        <div class="nbig"><span id="lossval">0</span><small>losses allowed</small></div>
+        <input type="range" id="lossslider" min="0" max="30" value="0" step="1"
+               aria-label="Losses allowed in the run">
+      </div>
+      <div class="chips" id="losspresets">
+        <button class="chip on" data-lb="0">0</button>
+        <button class="chip" data-lb="1">1</button>
+        <button class="chip" data-lb="3">3</button>
+        <button class="chip" data-lb="5">5</button>
+        <button class="chip" data-lb="10">10</button>
+      </div>
+    </div>
+    <div class="lolli" id="losslolli"><svg></svg><div class="spacer"></div></div>
+    <div class="scrollcue">Keep scrolling. The list runs deep</div>
+    <p class="srcline" id="losssrc"></p>
+  </div>
+</section>
+
 <section id="season">
   <h2>One club, every window length at once</h2>
   <p class="sub">A season's best 10 games and its best 100 games are different achievements, and a
@@ -374,10 +417,24 @@
 </section>
 
 <footer>
-  <p><b>How to read this.</b> A "stretch" is any run of consecutive regular-season games inside a
-    single season, game 12 through 61, say. Stretches never cross the winter, because Elo resets
-    partway toward the league average between seasons and a rating jump across that gap would be an
-    artifact of the reset, not of baseball. Playoff games are excluded.</p>
+  <p><b>How to read this.</b> A "stretch" is any run of consecutive regular-season games, game 12
+    through 61 of a season, say. Playoff games are excluded throughout.</p>
+  <p><b>Within a season, or across.</b> The switch at the top decides whether a stretch has to
+    live inside one season or may carry from September into April. Within a season is the default
+    because that is how records are normally kept, and because it compares like with like: every
+    club season gets one entry. Across seasons, each franchise's whole run of games closes up into
+    one continuous log, so the 1986 Brewers finishing hot and the 1987 Brewers starting hot become
+    a single streak. Elo survives the crossing: the total is a sum of per-game changes, and the
+    reversion toward the league average that happens between seasons is not a game, so it never
+    enters the count. A cross-winter climb is Elo earned on the field.</p>
+  <p><b>Ties count as half a win</b> in every winning percentage here, the way the standings have
+    always treated them. Over a window of N games that works out to (N + W − L) / 2N, so 44–5–1
+    reads .890 rather than .898. Ties effectively vanished after 1970; before that they are common
+    enough to move the order.</p>
+  <p><b>The loss budget.</b> Setting it to zero gives plain winning streaks. Setting it to three
+    asks how many wins a club piled up before its fourth loss, over the best such run it ever had.
+    Each run is trimmed to start and end on a win, so the count is not padded by ties on the ends,
+    and each club gets its single best run rather than every window that fits the budget.</p>
   <p><b>Overlapping runs.</b> A hot 50-game stretch contains dozens of other very good 50-game
     stretches that share most of the same games. By default the lists hide those near-duplicates and
     show a club's streak once. Flip the switch to see every stretch, which is what the scatterplot's
@@ -457,11 +514,6 @@ const NAMEIDX = (function(){
   return m;
 })();
 // every club season, addressable as CODE-YEAR, for the profile picker
-const SEASONIDX = new Map(S.map(s => [s.t + "-" + s.y, s]));
-const SEASONROWS = S.map(s => ({key: s.t + "-" + s.y, label: s.label, y: s.y,
-                                hay: (s.label + " " + s.t + " " + s.short).toLowerCase()}))
-                    .sort((a, b) => b.y - a.y || a.label.localeCompare(b.label));
-
 const SEARCHROWS = (function(){
   const rows = [];
   for (const [code, f] of NAMEIDX) {
@@ -494,10 +546,13 @@ function prettyDate(iso){
   const [y, m, d] = iso.split("-").map(Number);
   return MONTH[m - 1] + " " + d + ", " + y;
 }
-function pct(w, l){
-  const g = w + l;
-  if (!g) return ".500";
-  const v = w / g;
+/* A tie counts as half a win, the way the standings have always done it.
+   Over a window of N games that reduces to WP% = (N + W - L) / 2N, so ranking
+   on winning percentage is exactly ranking on games over .500. */
+function wp(w, l, N){ return N ? (N + w - l) / (2 * N) : .5; }
+function wpKey(w, l, N){ return N ? Math.round(500 * (N + w - l) / N) : 500; }
+function pct(w, l, N){
+  const v = wp(w, l, N);
   return v >= 1 ? "1.000" : v.toFixed(3).replace(/^0/, "");
 }
 function signed(v){ return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(Math.round(v)); }
@@ -519,9 +574,95 @@ function fit(str, room, size, fallback){
   return t + "…";
 }
 
+/* ==================== 1b. units: what a window slides over ====================
+   In "within a season" mode a unit is one club season. In "across seasons" mode
+   it is a franchise's entire run of games with the offseasons closed up, so a
+   streak can carry from September into April. Units quack like season objects
+   (n, cw, cl, cx, t, y), so everything downstream is written once.
+
+   Elo still works across the winter because we sum per-game deltas: the
+   between-seasons reversion to the mean is not a game, so it never enters the
+   total. A cross-winter climb is Elo earned on the field, not the reset. */
+let U = S, UKEY = "", UNITIDX = new Map(), UNITROWS = [];
+
+function buildUnits(){
+  const key = state.era + "|" + state.span;
+  if (UKEY === key) return;
+  UKEY = key;
+  if (state.span === "season") {
+    U = S;
+  } else {
+    const byCode = new Map();
+    for (let si = 0; si < S.length; si++) {
+      const s = S[si];
+      if (s.y < state.era) continue;
+      let a = byCode.get(s.t);
+      if (!a) { a = []; byCode.set(s.t, a); }
+      a.push(si);
+    }
+    U = [];
+    for (const [code, idx] of byCode) {
+      idx.sort((a, b) => S[a].y - S[b].y);
+      let n = 0;
+      for (const si of idx) n += S[si].n;
+      const cw = new Uint32Array(n + 1), cl = new Uint32Array(n + 1), cx = new Int32Array(n + 1);
+      const sIdx = new Uint16Array(n), gIdx = new Uint16Array(n);
+      let k = 0;
+      for (const si of idx) {
+        const s = S[si];
+        for (let i = 0; i < s.n; i++) {
+          cw[k + 1] = cw[k] + (s.cw[i + 1] - s.cw[i]);
+          cl[k + 1] = cl[k] + (s.cl[i + 1] - s.cl[i]);
+          cx[k + 1] = cx[k] + s.x[i];
+          sIdx[k] = si; gIdx[k] = i;
+          k++;
+        }
+      }
+      const first = S[idx[0]].y, last = S[idx[idx.length - 1]].y;
+      U.push({t: code, y: first, n, cw, cl, cx, sIdx, gIdx,
+              name: franchiseName(code, last),
+              label: franchiseName(code, last) + ", " + first + "–" + String(last).slice(2),
+              short: nickname(franchiseName(code, last))});
+    }
+    U.sort((a, b) => a.label.localeCompare(b.label));
+  }
+  UNITIDX = new Map(U.map(u => [unitKey(u), u]));
+  UNITROWS = U.map(u => ({key: unitKey(u), label: u.label, y: u.y,
+                          hay: (u.label + " " + u.t + " " + u.short).toLowerCase()}))
+              .sort((a, b) => b.y - a.y || a.label.localeCompare(b.label));
+}
+function unitKey(u){ return u.sIdx ? u.t : u.t + "-" + u.y; }
+
+// Which real season a unit's game belongs to, and its index inside that season
+function gSeason(u, i){ return u.sIdx ? S[u.sIdx[i]] : u; }
+function gIndex(u, i){ return u.sIdx ? u.gIdx[i] : i; }
+function gameDate(u, i){ const s = gSeason(u, i); return dateOf(s, gIndex(u, i)); }
+function gameRes(u, i){ return gSeason(u, i).r[gIndex(u, i)]; }
+function eloBefore(u, i){ const s = gSeason(u, i); return (s.p + s.cx[gIndex(u, i)]) / 10; }
+function eloAfter(u, i){ const s = gSeason(u, i); return (s.p + s.cx[gIndex(u, i) + 1]) / 10; }
+
+// A window's own identity, which in across-seasons mode depends on where it
+// actually falls rather than on the unit as a whole
+function winLabel(u, i, N){
+  if (!u.sIdx) return u.label;
+  const a = gSeason(u, i), b = gSeason(u, i + N - 1);
+  return a.y === b.y ? a.label : u.name + " " + a.y + "–" + String(b.y).slice(2);
+}
+function winShort(u, i, N){
+  if (!u.sIdx) return u.short;
+  const a = gSeason(u, i), b = gSeason(u, i + N - 1);
+  return a.y === b.y ? a.short : u.short + " " + String(a.y).slice(2) + "–" + String(b.y).slice(2);
+}
+function winWhen(u, i, N){
+  const a = gameDate(u, i), b = gameDate(u, i + N - 1);
+  const same = a.getUTCFullYear() === b.getUTCFullYear();
+  return md(a) + (same ? "" : " " + a.getUTCFullYear()) + " – " +
+         md(b) + (same ? "" : " " + b.getUTCFullYear());
+}
+
 /* ============================ 2. app state ============================ */
 const state = {n: 50, era: 1901, overlap: false, only: false, picks: [],
-               season: null, mode: "best"};
+               season: null, mode: "best", span: "season", losses: 0};
 readHash();
 
 // Runs for the current (n, era). Flat typed arrays, one entry per stretch.
@@ -529,14 +670,15 @@ let R = {len: 0, s: null, i: null, w: null, l: null, g: null, byRecord: null, by
 
 function computeRuns(){
   const N = state.n, era = state.era;
+  buildUnits();
   let total = 0;
-  for (const s of S) if (s.y >= era && s.n >= N) total += s.n - N + 1;
+  for (const s of U) if (s.y >= era && s.n >= N) total += s.n - N + 1;
 
   const rs = new Uint16Array(total), ri = new Uint16Array(total),
         rw = new Uint8Array(total), rl = new Uint8Array(total), rg = new Int16Array(total);
   let k = 0;
-  for (let si = 0; si < S.length; si++) {
-    const s = S[si];
+  for (let si = 0; si < U.length; si++) {
+    const s = U[si];
     if (s.y < era || s.n < N) continue;
     const last = s.n - N;
     for (let i = 0; i <= last; i++) {
@@ -556,7 +698,7 @@ function computeRuns(){
   const keyRec = new Int32Array(total), keyCl = new Int32Array(total);
   for (let j = 0; j < total; j++) {
     const g = rw[j] + rl[j];
-    keyRec[j] = g ? Math.round(1000 * rw[j] / g) : 500;
+    keyRec[j] = wpKey(rw[j], rl[j], N);
     keyCl[j] = rg[j];
   }
   R.byRecord = countingOrder(keyRec);
@@ -632,7 +774,7 @@ function record(j){
   return R.w[j] + "–" + R.l[j] + (t ? "–" + t : "");
 }
 function recLabel(j, kind){
-  return kind === "record" ? record(j) + "  " + pct(R.w[j], R.l[j]) : signed(R.g[j] / 10);
+  return kind === "record" ? record(j) + "  " + pct(R.w[j], R.l[j], state.n) : signed(R.g[j] / 10);
 }
 
 function hueFor(code){
@@ -640,12 +782,11 @@ function hueFor(code){
   return k < 0 ? null : (k < HUE.length ? HUE[k] : INK);
 }
 function runInfo(j){
-  const s = S[R.s[j]], i = R.i[j], N = state.n;
+  const s = U[R.s[j]], i = R.i[j], N = state.n;
   const w = R.w[j], l = R.l[j], t = N - w - l;
-  const a = dateOf(s, i), b = dateOf(s, i + N - 1);
   return {j, s, i, N, w, l, t, gain: R.g[j] / 10, code: s.t,
-          label: s.label, when: md(a) + " – " + md(b),
-          eloStart: (s.p + s.cx[i]) / 10, eloEnd: (s.p + s.cx[i + N]) / 10};
+          label: winLabel(s, i, N), when: winWhen(s, i, N),
+          eloStart: eloBefore(s, i), eloEnd: eloAfter(s, i + N - 1)};
 }
 
 /* ============================ 3. lollipops ============================ */
@@ -657,7 +798,7 @@ function Lollipop(sel, kind){
   const spacer = box.querySelector(".spacer");
   let rows = [], scale = null, W = 0;
 
-  function value(j){ return kind === "record" ? R.w[j] / Math.max(1, R.w[j] + R.l[j]) : R.g[j] / 10; }
+  function value(j){ return kind === "record" ? wp(R.w[j], R.l[j], state.n) : R.g[j] / 10; }
   function base(){ return kind === "record" ? 0.5 : 0; }
 
   function measure(){
@@ -665,7 +806,7 @@ function Lollipop(sel, kind){
     // the name column is sized to the names actually on the list, so full club
     // names survive wherever there is room for them
     const head = rows.slice(0, 300);
-    const widest = d3.max(head, j => textW(S[R.s[j]].label, 13.5)) || 120;
+    const widest = d3.max(head, j => textW(winLabel(U[R.s[j]], R.i[j], state.n), 13.5)) || 120;
     const nameW = Math.min(W * 0.42, Math.max(150, widest + NAMEX + 18));
     // right margin is measured off the longest value label, so "24–0–1 1.000"
     // never runs off the edge on a phone
@@ -734,7 +875,7 @@ function Lollipop(sel, kind){
     const all = sel.merge(en);
     all.attr("transform", d => "translate(0," + (HEADH + d.p * ROW - st + 4) + ")");
     all.each(function(d){
-      const n = d3.select(this), j = d.j, s = S[R.s[j]];
+      const n = d3.select(this), j = d.j, s = U[R.s[j]], i0 = R.i[j], N0 = state.n;
       const h = hueFor(s.t), on = !!h, col = on ? h : (state.picks.length ? CLOUD : "#8FA3B8");
       const v = value(j), x = scale(v);
       n.select("line.stem").attr("x1", x0).attr("x2", x).attr("y1", ROW / 2).attr("y2", ROW / 2)
@@ -744,7 +885,7 @@ function Lollipop(sel, kind){
       n.select("text.rk").attr("x", NAMEX - 9).attr("y", ROW / 2 + 4).text(d.p + 1);
       n.select("text.nm").attr("x", NAMEX).attr("y", ROW / 2 + 4.5)
         .attr("fill", on ? INK : SUB).attr("font-weight", on ? 600 : 400)
-        .text(fit(s.label, scale.nameW - NAMEX - 16, 13.5, s.short));
+        .text(fit(winLabel(s, i0, N0), scale.nameW - NAMEX - 16, 13.5, winShort(s, i0, N0)));
       n.select("text.vl").attr("x", x + 11).attr("y", ROW / 2 + 4.5).attr("fill", on ? INK : SUB)
         .text(recLabel(j, kind));
       n.select("rect.hit").attr("width", W);
@@ -752,7 +893,7 @@ function Lollipop(sel, kind){
     all.style("cursor", "pointer")
        .on("mousemove", (ev, d) => showTip(ev, runInfo(d.j)))
        .on("mouseleave", hideTip)
-       .on("click", (ev, d) => { const s = S[R.s[d.j]]; pickSeason(s.t + "-" + s.y, true); });
+       .on("click", (ev, d) => pickSeason(unitKey(U[R.s[d.j]]), true));
   }
 
   return {
@@ -797,7 +938,7 @@ const scat = (function(){
 
     let xlo = 1, xhi = 0, ylo = 1e9, yhi = -1e9;
     for (let k = 0; k < count; k++) {
-      const j = at(k), g = R.w[j] + R.l[j], p = g ? R.w[j] / g : .5, e = R.g[j] / 10;
+      const j = at(k), p = wp(R.w[j], R.l[j], state.n), e = R.g[j] / 10;
       if (p < xlo) xlo = p; if (p > xhi) xhi = p;
       if (e < ylo) ylo = e; if (e > yhi) yhi = e;
     }
@@ -843,14 +984,14 @@ const scat = (function(){
     if (state.picks.length) {
       const want = new Set(state.picks), bestOf = new Map();
       for (let k = 0; k < count; k++) {
-        const j = at(k), code = S[R.s[j]].t;
+        const j = at(k), code = U[R.s[j]].t;
         if (!want.has(code)) continue;
         const b = bestOf.get(code);
         if (b === undefined || R.g[j] > R.g[b]) bestOf.set(code, j);
       }
       for (const [code, j] of bestOf) marks.push({j, hue: hueFor(code)});
     }
-    annotate(svg.append("g"), marks, x, y, W, 12, s => s.short);
+    annotate(svg.append("g"), marks, x, y, W, 12, (u, i, N) => winShort(u, i, N));
 
     // hover
     const hov = svg.append("circle").attr("r", 6).attr("fill", "none")
@@ -859,15 +1000,13 @@ const scat = (function(){
       const [mx, my] = d3.pointer(ev, this);
       const j = nearest(mx, my);
       if (j == null) { hov.style("display", "none"); hideTip(); return; }
-      const g = R.w[j] + R.l[j];
-      hov.attr("cx", x(g ? R.w[j] / g : .5)).attr("cy", y(R.g[j] / 10)).style("display", null);
+      hov.attr("cx", x(wp(R.w[j], R.l[j], state.n))).attr("cy", y(R.g[j] / 10)).style("display", null);
       showTip(ev, runInfo(j));
     }).on("mouseleave", function(){ hov.style("display", "none"); hideTip(); })
       .on("click", function(ev){
         const [mx, my] = d3.pointer(ev, this), j = nearest(mx, my);
         if (j == null) return;
-        const s = S[R.s[j]];
-        pickSeason(s.t + "-" + s.y, true);
+        pickSeason(unitKey(U[R.s[j]]), true);
       }).style("cursor", "pointer");
   }
 
@@ -879,15 +1018,15 @@ const scat = (function(){
     c.fillStyle = dim ? "rgba(150,155,160," + alpha + ")" : "rgba(90,120,155," + alpha + ")";
     const r = 0.9 * k, hot = [];
     for (let q = 0; q < count; q++) {
-      const j = at(q), g = R.w[j] + R.l[j];
-      const px = x(g ? R.w[j] / g : .5), py = y(R.g[j] / 10);
-      if (hueFor(S[R.s[j]].t)) { hot.push(j, px, py); continue; }
+      const j = at(q);
+      const px = x(wp(R.w[j], R.l[j], state.n)), py = y(R.g[j] / 10);
+      if (hueFor(U[R.s[j]].t)) { hot.push(j, px, py); continue; }
       c.fillRect(px - r, py - r, r * 2, r * 2);
       if (gridOut) mark(gridOut, px, py, j);
     }
     for (let q = 0; q < hot.length; q += 3) {
       const j = hot[q], px = hot[q + 1], py = hot[q + 2];
-      c.fillStyle = hueFor(S[R.s[j]].t);
+      c.fillStyle = hueFor(U[R.s[j]].t);
       c.globalAlpha = .85;
       c.beginPath(); c.arc(px, py, 2.7 * k, 0, 6.2832); c.fill();
       c.globalAlpha = 1;
@@ -922,8 +1061,7 @@ const scat = (function(){
       if (gx2 < 0 || gy2 < 0 || gx2 >= gw || gy2 >= gh) continue;
       const j = grid[gy2 * gw + gx2];
       if (j < 0) continue;
-      const g = R.w[j] + R.l[j];
-      const d = Math.hypot(x(g ? R.w[j] / g : .5) - mx, y(R.g[j] / 10) - my);
+      const d = Math.hypot(x(wp(R.w[j], R.l[j], state.n)) - mx, y(R.g[j] / 10) - my);
       if (d < bd) { bd = d; best = j; }
     }
     return bd < 16 ? best : null;
@@ -963,15 +1101,16 @@ function annotate(g, marks, x, y, W, size, nameOf){
   for (const m of marks) {
     const prev = seen.get(m.j);
     if (prev) { prev.why = prev.why || m.why; prev.hue = prev.hue || m.hue; continue; }
-    const copy = {j: m.j, why: m.why, hue: m.hue || hueFor(S[R.s[m.j]].t)};
+    const copy = {j: m.j, why: m.why, hue: m.hue || hueFor(U[R.s[m.j]].t)};
     seen.set(m.j, copy);
     items.push(copy);
   }
   const placed = [];
   for (const m of items) {
-    const j = m.j, gm = R.w[j] + R.l[j], s = S[R.s[j]];
-    const px = x(gm ? R.w[j] / gm : .5), py = y(R.g[j] / 10);
-    const label = nameOf(s) + (m.why ? "  " + m.why : "");
+    const j = m.j, s = U[R.s[j]];
+    const px = x(wp(R.w[j], R.l[j], state.n)), py = y(R.g[j] / 10);
+    const nm = nameOf(s, R.i[j], state.n);
+    const label = nm + (m.why ? "  " + m.why : "");
     const wide = textW(label, size, true);
     const side = px + wide + 26 > W ? -1 : 1;
     let ly = py + 4;
@@ -988,12 +1127,172 @@ function annotate(g, marks, x, y, W, size, nameOf){
     const t = g.append("text").attr("x", px + side * (py - ly > 9 ? 10 : 9)).attr("y", ly)
       .attr("text-anchor", side > 0 ? "start" : "end")
       .attr("font-family", 'Futura,"Trebuchet MS",sans-serif').attr("font-weight", "bold")
-      .attr("font-size", size).attr("fill", INK).text(nameOf(s));
+      .attr("font-size", size).attr("fill", INK).text(nm);
     if (m.why) t.append("tspan")
       .attr("font-family", '"Gill Sans","Gill Sans MT","Helvetica Neue",Helvetica,Arial,sans-serif')
       .attr("font-weight", "normal").attr("fill", FAINT).attr("font-size", size - 1)
       .text("  " + m.why);
   }
+}
+
+/* ================= 4a. most wins inside a loss budget =================
+   For each unit, the two-pointer window that holds at most L losses and takes
+   the most wins. Trimmed to start and end on a win, so "24 wins" is a run that
+   opens and closes with one rather than a window padded with ties. */
+let LOSSROWS = [], LOSSKEY = "";
+
+function computeLosses(){
+  const key = UKEY + "|" + state.losses;
+  if (LOSSKEY === key) return;
+  buildUnits();
+  LOSSKEY = UKEY + "|" + state.losses;
+  const L = state.losses, out = [];
+  for (let ui = 0; ui < U.length; ui++) {
+    const u = U[ui];
+    if (u.y < state.era) continue;
+    const n = u.n, cw = u.cw, cl = u.cl;
+    let lo = 0, best = -1, bi = 0, bn = 0;
+    for (let hi = 0; hi < n; hi++) {
+      while (cl[hi + 1] - cl[lo] > L) lo++;
+      // trim to a win on both ends so the run is exactly what it claims
+      let a = lo, b = hi;
+      while (a <= b && cw[a + 1] === cw[a]) a++;
+      while (b >= a && cw[b + 1] === cw[b]) b--;
+      if (b < a) continue;
+      const w = cw[b + 1] - cw[a], len = b - a + 1;
+      if (w > best || (w === best && len < bn)) { best = w; bi = a; bn = len; }
+    }
+    if (best > 0) out.push({ui, i: bi, N: bn, w: best,
+                            l: cl[bi + bn] - cl[bi], g: u.cx[bi + bn] - u.cx[bi]});
+  }
+  out.sort((a, b) => b.w - a.w || a.N - b.N || b.g - a.g);
+  LOSSROWS = out;
+}
+
+// The rows the loss chart shows, honouring the "only these" filter
+function lossList(){
+  computeLosses();
+  const picks = new Set(state.picks);
+  return (state.only && picks.size ? LOSSROWS.filter(r => picks.has(U[r.ui].t)) : LOSSROWS)
+         .slice(0, 4000);
+}
+
+const lossFig = (function(){
+  const box = document.getElementById("losslolli");
+  const svg = d3.select(box).select("svg");
+  const spacer = box.querySelector(".spacer");
+  let rows = [], scale = null, W = 0;
+
+  function measure(){
+    W = box.clientWidth || 900;
+    const head = rows.slice(0, 300);
+    const widest = d3.max(head, r => textW(winLabel(U[r.ui], r.i, r.N), 13.5)) || 120;
+    const nameW = Math.min(W * 0.42, Math.max(150, widest + NAMEX + 18));
+    const padR = Math.max(58, (d3.max(head, r => textW(lossLabel(r), 13, true)) || 40) + 24);
+    const hi = d3.max(head, r => r.w) || 1;
+    scale = d3.scaleLinear().domain([0, hi * 1.04]).range([nameW, W - padR]);
+    scale.nameW = nameW; scale.padR = padR;
+  }
+  function lossLabel(r){
+    const t = r.N - r.w - r.l;
+    return r.w + "–" + r.l + (t ? " in " + r.N : "");
+  }
+
+  function draw(){
+    const st = box.scrollTop;
+    const first = Math.max(0, Math.floor((st - HEADH) / ROW) - 1);
+    const last = Math.min(rows.length, first + Math.ceil((VIEWH - HEADH) / ROW) + 3);
+    const x0 = scale(0);
+
+    svg.attr("viewBox", [0, 0, W, VIEWH]).attr("width", W).attr("height", VIEWH);
+    let g = svg.select("g.body");
+    if (g.empty()) {
+      svg.append("line").attr("class", "bl").attr("stroke", CLOUD).attr("stroke-width", 1);
+      g = svg.append("g").attr("class", "body");
+      const hd = svg.append("g").attr("class", "head");
+      hd.append("rect").attr("class", "hdbg").attr("fill", "#fff").attr("x", 0);
+      hd.append("line").attr("class", "hdrule").attr("stroke", LINE);
+    }
+    const head = svg.select("g.head");
+    head.select("rect.hdbg").attr("y", 0).attr("width", W).attr("height", HEADH - 5);
+    head.select("line.hdrule").attr("x1", 0).attr("x2", W).attr("y1", HEADH - 5).attr("y2", HEADH - 5);
+    const ticks = scale.ticks(Math.max(2, Math.floor((W - scale.padR - scale.nameW) / 60)));
+    const tk = head.selectAll("text.tk").data(ticks, d => d);
+    tk.exit().remove();
+    tk.enter().append("text").attr("class", "tk").attr("text-anchor", "middle")
+      .attr("font-family", "var(--body)").attr("font-size", 11.5).attr("fill", FAINT)
+      .merge(tk).attr("x", d => scale(d)).attr("y", HEADH - 13).text(d => d);
+    let cap = head.select("text.cap2");
+    if (cap.empty()) cap = head.append("text").attr("class", "cap2")
+      .attr("font-family", "var(--display)").attr("font-size", 10).attr("letter-spacing", ".1em")
+      .attr("fill", FAINT);
+    cap.attr("x", 0).attr("y", 13).text("WINS IN THE RUN");
+    svg.select("line.bl").attr("x1", x0).attr("x2", x0).attr("y1", HEADH - 5).attr("y2", VIEWH);
+
+    const data = [];
+    for (let p = first; p < last; p++) data.push({p, r: rows[p]});
+    const sel = g.selectAll("g.row").data(data, d => d.r.ui + ":" + d.r.i);
+    sel.exit().remove();
+    const en = sel.enter().append("g").attr("class", "row");
+    en.append("line").attr("class", "stem").attr("stroke-linecap", "round");
+    en.append("circle").attr("class", "dot").attr("stroke", "#fff").attr("stroke-width", 2);
+    en.append("text").attr("class", "rk").attr("text-anchor", "end")
+      .attr("font-family", "var(--body)").attr("font-size", 11)
+      .attr("font-variant-numeric", "tabular-nums").attr("fill", CLOUD);
+    en.append("text").attr("class", "nm").attr("font-family", "var(--body)").attr("font-size", 13.5);
+    en.append("text").attr("class", "vl").attr("font-family", "var(--display)")
+      .attr("font-weight", "bold").attr("font-size", 13)
+      .attr("font-variant-numeric", "tabular-nums");
+    en.append("rect").attr("class", "hit").attr("fill", "transparent").attr("x", 0).attr("height", ROW);
+
+    const all = sel.merge(en);
+    all.attr("transform", d => "translate(0," + (HEADH + d.p * ROW - st + 4) + ")");
+    all.each(function(d){
+      const nsel = d3.select(this), r = d.r, u = U[r.ui];
+      const h = hueFor(u.t), on = !!h, col = on ? h : (state.picks.length ? CLOUD : "#8FA3B8");
+      const xv = scale(r.w);
+      nsel.select("line.stem").attr("x1", x0).attr("x2", xv).attr("y1", ROW / 2).attr("y2", ROW / 2)
+        .attr("stroke", on ? h : LINE).attr("stroke-width", on ? 2.5 : 2);
+      nsel.select("circle.dot").attr("cx", xv).attr("cy", ROW / 2).attr("r", on ? 6 : 4.6).attr("fill", col);
+      nsel.select("text.rk").attr("x", NAMEX - 9).attr("y", ROW / 2 + 4).text(d.p + 1);
+      nsel.select("text.nm").attr("x", NAMEX).attr("y", ROW / 2 + 4.5)
+        .attr("fill", on ? INK : SUB).attr("font-weight", on ? 600 : 400)
+        .text(fit(winLabel(u, r.i, r.N), scale.nameW - NAMEX - 16, 13.5, winShort(u, r.i, r.N)));
+      nsel.select("text.vl").attr("x", xv + 11).attr("y", ROW / 2 + 4.5)
+        .attr("fill", on ? INK : SUB).text(lossLabel(r));
+      nsel.select("rect.hit").attr("width", W);
+    });
+    all.style("cursor", "pointer")
+       .on("mousemove", (ev, d) => showLossTip(ev, d.r))
+       .on("mouseleave", hideTip)
+       .on("click", (ev, d) => pickSeason(unitKey(U[d.r.ui]), true));
+  }
+
+  return {
+    update(){
+      rows = lossList();
+      spacer.style.height = Math.max(0, rows.length * ROW + HEADH + 20 - VIEWH) + "px";
+      measure(); draw();
+    },
+    redraw(){ if (rows.length) { measure(); draw(); } },
+    scrolled: draw,
+    rowsNow: () => rows,
+    label: lossLabel
+  };
+})();
+document.getElementById("losslolli").addEventListener("scroll", lossFig.scrolled, {passive: true});
+
+function showLossTip(ev, r){
+  const u = U[r.ui], t = r.N - r.w - r.l;
+  tipEl.style.display = "block";
+  tipEl.innerHTML =
+    '<div class="tt">' + winLabel(u, r.i, r.N) + "</div>" +
+    '<div class="td">' + winWhen(u, r.i, r.N) + "</div>" +
+    '<div class="tr"><b>' + r.w + " wins</b> in " + r.N + " games (" + r.w + "–" + r.l +
+      (t ? "–" + t : "") + ")</div>" +
+    '<div class="tr">Elo <b>' + signed(r.g / 10) + "</b> · " + Math.round(eloBefore(u, r.i)) +
+      " → " + Math.round(eloAfter(u, r.i + r.N - 1)) + "</div>";
+  placeTip(ev);
 }
 
 /* ================= 4b. one club, every window length ================= */
@@ -1005,20 +1304,21 @@ let UNIV = null;                                   // rank universe for the curr
 
 function buildUniverse(){
   const era = state.era;
+  buildUnits();
   let maxN = 0;
-  for (const s of S) if (s.y >= era && s.n > maxN) maxN = s.n;
+  buildUnits();
+  for (const s of U) if (s.y >= era && s.n > maxN) maxN = s.n;
   const rbuf = [], ebuf = [];
   for (let N = 0; N <= maxN; N++) { rbuf.push(null); ebuf.push(null); }
   for (let N = MINN; N <= maxN; N++) { rbuf[N] = []; ebuf[N] = []; }
 
-  for (const s of S) {
+  for (const s of U) {
     if (s.y < era || s.n < MINN) continue;
     const n = s.n, cw = s.cw, cl = s.cl, cx = s.cx, top = Math.min(n, maxN);
     for (let N = MINN; N <= top; N++) {
       let bk = -1, be = -32768;
       for (let i = 0, last = n - N; i <= last; i++) {
-        const w = cw[i + N] - cw[i], g = w + (cl[i + N] - cl[i]);
-        const k = g ? ((1000 * w / g + .5) | 0) : 500;
+        const k = wpKey(cw[i + N] - cw[i], cl[i + N] - cl[i], N);
         if (k > bk) bk = k;
         const e = cx[i + N] - cx[i];
         if (e > be) be = e;
@@ -1031,7 +1331,7 @@ function buildUniverse(){
     rec.push(rbuf[N] ? Int16Array.from(rbuf[N]).sort() : null);
     elo.push(ebuf[N] ? Int16Array.from(ebuf[N]).sort() : null);
   }
-  UNIV = {era, maxN, rec, elo};
+  UNIV = {key: UKEY, maxN, rec, elo};
 }
 
 // arr is ascending; rank is one more than the number of club-seasons above v
@@ -1048,14 +1348,12 @@ function profileOf(s, mode){
     let iR, iE, kr, ke;
     if (mode === "last") {
       iR = iE = n - N;
-      const w = cw[n] - cw[iR], g = w + (cl[n] - cl[iR]);
-      kr = g ? ((1000 * w / g + .5) | 0) : 500;
+      kr = wpKey(cw[n] - cw[iR], cl[n] - cl[iR], N);
       ke = cx[n] - cx[iR];
     } else {
       iR = iE = 0; kr = -1; ke = -32768;
       for (let i = 0, last = n - N; i <= last; i++) {
-        const w = cw[i + N] - cw[i], g = w + (cl[i + N] - cl[i]);
-        const k = g ? ((1000 * w / g + .5) | 0) : 500;
+        const k = wpKey(cw[i + N] - cw[i], cl[i + N] - cl[i], N);
         if (k > kr) { kr = k; iR = i; }
         const e = cx[i + N] - cx[i];
         if (e > ke) { ke = e; iE = i; }
@@ -1176,9 +1474,9 @@ const prof = (function(){
   function draw(){
     const s = selectedSeason();
     const lead = document.getElementById("prlead");
-    if (!s) { lead.innerHTML = '<div class="prwait">No club season selected.</div>';
+    if (!s) { lead.innerHTML = '<div class="prwait">Nothing selected.</div>';
               svg.selectAll("*").remove(); return; }
-    if (!UNIV || UNIV.era !== state.era) {
+    if (!UNIV || UNIV.key !== UKEY) {
       lead.innerHTML = '<div class="prwait">Ranking every window length…</div>';
       svg.selectAll("*").remove();
       setTimeout(() => { buildUniverse(); draw(); }, 16);
@@ -1186,7 +1484,7 @@ const prof = (function(){
     }
     if (s.y < state.era || s.n < MINN) {
       lead.innerHTML = '<div class="prwait">' + s.label +
-        ' falls outside the era filter above. Widen it to rank this season.</div>';
+        ' falls outside the era filter above. Widen it to rank this run.</div>';
       svg.selectAll("*").remove(); return;
     }
     rows = profileOf(s, state.mode);
@@ -1194,15 +1492,16 @@ const prof = (function(){
     // headline: the window where they look most historic
     const top = bestRow(rows, "rankR");
     const r = winCount(s, top.iR, top.N);
-    const a = dateOf(s, top.iR), b = dateOf(s, top.iR + top.N - 1);
+    const when = winWhen(s, top.iR, top.N);
     const era = state.era === 1871 ? "ever" : "since " + state.era;
     lead.innerHTML =
       '<p class="pw">' + s.label + '</p><p class="pd">' +
       (state.mode === "last" ? "Over their last " : "Their best ") + top.N +
-      " games: <b>" + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l) +
-      "), " + md(a) + " – " + md(b) + ". That is the <span class='rk'>" + ord(top.rankR) +
+      " games: <b>" + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l, top.N) +
+      "), " + when + ". That is the <span class='rk'>" + ord(top.rankR) +
       "-best</span> " + top.N + "-game stretch " + era +
-      ", out of " + top.pool.toLocaleString() + " club seasons.</p>";
+      ", out of " + top.pool.toLocaleString() +
+      (state.span === "career" ? " franchises." : " club seasons.") + "</p>";
 
     W = box.clientWidth || 900;
     H = Math.max(340, Math.min(520, Math.round(W * 0.42)));
@@ -1229,13 +1528,13 @@ const prof = (function(){
         d1.attr("cx", x(row.N)).attr("cy", y(row.rankR));
         d2.attr("cx", x(row.N)).attr("cy", y(row.rankE));
         const rc = winCount(s, row.iR, row.N), ec = winCount(s, row.iE, row.N);
-        const da = dateOf(s, row.iR), db = dateOf(s, row.iR + row.N - 1);
+        const dw = winWhen(s, row.iR, row.N);
         tipEl.style.display = "block";
         tipEl.innerHTML =
           '<div class="tt">' + row.N + " games</div>" +
-          '<div class="td">' + md(da) + " – " + md(db) + "</div>" +
+          '<div class="td">' + dw + "</div>" +
           '<div class="tr"><b>' + rc.w + "–" + rc.l + (rc.t ? "–" + rc.t : "") + "</b> (" +
-            pct(rc.w, rc.l) + ") · <b>" + ord(row.rankR) + "</b> all time</div>" +
+            pct(rc.w, rc.l, row.N) + ") · <b>" + ord(row.rankR) + "</b> all time</div>" +
           '<div class="tr">Elo <b>' + signed(row.ke / 10) + "</b> (" + ec.w + "–" + ec.l +
             ") · <b>" + ord(row.rankE) + "</b> all time</div>";
         placeTip(ev);
@@ -1243,8 +1542,10 @@ const prof = (function(){
       .on("mouseleave", () => { hv.style("display", "none"); hideTip(); });
 
     document.getElementById("prsrc").textContent =
-      "Rank counts each club season once, so a hot run appears one time rather than at every " +
-      "overlapping offset. " + SOURCE;
+      (state.span === "career"
+      ? "Rank counts each franchise once, over its whole run of games. "
+      : "Rank counts each club season once, so a hot run appears one time rather than at every " +
+        "overlapping offset. ") + SOURCE;
   }
 
   return {update: draw, rowsNow: () => rows, geomFor: geom, paintTo: paint, dims: () => ({W, H, M})};
@@ -1252,20 +1553,20 @@ const prof = (function(){
 
 function selectedSeason(){
   if (!state.season) return null;
-  return SEASONIDX.get(state.season) || null;
+  return UNITIDX.get(state.season) || null;
 }
 // open on the best club of the newest season in view, so the page lands on
 // something current rather than on a club from 1906
 function defaultSeason(){
   let best = null, bestKey = -1;
-  const yr = d3.max(S, s => s.y >= state.era ? s.y : null);
-  for (const s of S) {
+  const yr = d3.max(U, s => s.y >= state.era ? s.y : null);
+  for (const s of U) {
     if (s.y !== yr || s.n < MINN) continue;
     const g = s.cw[s.n] + s.cl[s.n];
     const k = g ? s.cw[s.n] / g : 0;
     if (k > bestKey) { bestKey = k; best = s; }
   }
-  return best ? best.t + "-" + best.y : null;
+  return best ? unitKey(best) : null;
 }
 
 /* ============================ 5. tooltip / toast ============================ */
@@ -1275,7 +1576,7 @@ function showTip(ev, r){
   tipEl.innerHTML =
     '<div class="tt">' + r.label + "</div>" +
     '<div class="td">' + r.when + " · games " + (r.i + 1) + "–" + (r.i + r.N) + "</div>" +
-    '<div class="tr"><b>' + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l) + ")</div>" +
+    '<div class="tr"><b>' + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l, r.N) + ")</div>" +
     '<div class="tr">Elo <b>' + signed(r.gain) + "</b> · " + Math.round(r.eloStart) +
       " → " + Math.round(r.eloEnd) + "</div>";
   placeTip(ev);
@@ -1311,7 +1612,7 @@ function drawHero(){
   const r = runInfo(rows[0]);
   document.getElementById("leadwho").textContent = r.label;
   document.getElementById("leadrec").innerHTML =
-    "<b>" + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l) + ") · " +
+    "<b>" + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l, r.N) + ") · " +
     r.when + " · Elo <b>" + signed(r.gain) + "</b>, from " + Math.round(r.eloStart) +
     " to " + Math.round(r.eloEnd);
 
@@ -1323,7 +1624,7 @@ function drawHero(){
   const bw = Math.max(1.5, (W - gap * (N - 1)) / N);
   const g = svg.append("g");
   for (let k = 0; k < N; k++) {
-    const c = r.s.r[r.i + k];
+    const c = gameRes(r.s, r.i + k);
     const win = c === "W";
     g.append("rect").attr("x", k * (bw + gap)).attr("y", win ? 8 : 26)
       .attr("width", bw).attr("height", win ? 18 : 18).attr("rx", Math.min(2, bw / 2))
@@ -1344,6 +1645,18 @@ const lolliB = Lollipop("#climblolli", "climb");
 document.getElementById("reclolli").addEventListener("scroll", lolliA.scrolled, {passive: true});
 document.getElementById("climblolli").addEventListener("scroll", lolliB.scrolled, {passive: true});
 
+function lossTitle(){
+  const era = state.era === 1871 ? "all-time" : "since " + state.era;
+  const L = state.losses;
+  document.getElementById("lktitle").textContent =
+    (L === 0 ? "Longest winning streaks" : "Most wins allowing " + L + " loss" + (L > 1 ? "es" : "")) +
+    ", " + era + (state.span === "career" ? ", runs may cross seasons" : "");
+  document.getElementById("losssrc").textContent =
+    (L === 0 ? "A run of straight wins. " : "The most wins any club managed before its " +
+      ord(L + 1) + " loss in the run. ") +
+    (state.span === "career" ? "Runs may carry across the winter. " : "Runs stay inside one season. ") +
+    SOURCE;
+}
 function titles(){
   const era = state.era === 1871 ? "all-time" : "since " + state.era;
   document.getElementById("rectitle").textContent =
@@ -1365,10 +1678,10 @@ function titles(){
 let pending = null;
 function refresh(recompute){
   if (recompute) computeRuns(); else cache.clear();
-  drawHero(); lolliA.update(); lolliB.update(); scat.update();
+  drawHero(); lolliA.update(); lolliB.update(); scat.update(); lossFig.update();
   if (!state.season) state.season = defaultSeason();
   prof.update();
-  titles(); drawPicks(); railSummary(); writeHash();
+  titles(); lossTitle(); drawPicks(); railSummary(); writeHash();
 }
 function refreshSoon(recompute){
   cancelAnimationFrame(pending);
@@ -1390,6 +1703,7 @@ document.querySelectorAll("#npresets .chip").forEach(b => b.addEventListener("cl
 }));
 document.querySelectorAll("#eras .chip").forEach(b => b.addEventListener("click", () => {
   state.era = +b.dataset.y;
+  UNIV = null; LOSSKEY = "";
   document.querySelectorAll("#eras .chip").forEach(o => o.classList.toggle("on", o === b));
   refresh(true);
 }));
@@ -1455,7 +1769,7 @@ let shits = [], scur = -1;
 function seasonSearch(){
   const q = sin.value.trim().toLowerCase();
   const parts = q.split(/\s+/).filter(Boolean);
-  shits = parts.length ? SEASONROWS.filter(r => parts.every(t => r.hay.includes(t))).slice(0, 10) : [];
+  shits = parts.length ? UNITROWS.filter(r => parts.every(t => r.hay.includes(t))).slice(0, 10) : [];
   scur = shits.length ? 0 : -1;
   sres.innerHTML = shits.map((r, k) =>
     '<div data-k="' + k + '" class="' + (k === scur ? "sel" : "") + '">' +
@@ -1477,7 +1791,7 @@ sres.addEventListener("mousedown", e => {
 document.addEventListener("click", e => { if (!e.target.closest("#sinput,#sres")) sres.style.display = "none"; });
 
 function pickSeason(key, scroll){
-  if (!SEASONIDX.has(key)) return;
+  if (!UNITIDX.has(key)) return;
   state.season = key;
   sin.value = ""; sres.style.display = "none"; shits = [];
   prof.update(); writeHash();
@@ -1489,6 +1803,32 @@ document.querySelectorAll("#prmode .chip").forEach(b => b.addEventListener("clic
   prof.update(); writeHash();
 }));
 
+// master span toggle: within one season, or across the winter
+document.querySelectorAll("#spans .chip").forEach(b => b.addEventListener("click", () => {
+  if (state.span === b.dataset.sp) return;
+  state.span = b.dataset.sp;
+  document.querySelectorAll("#spans .chip").forEach(o => o.classList.toggle("on", o === b));
+  // a club-season key has no meaning in career mode and vice versa
+  const code = (state.season || "").split("-")[0];
+  buildUnits();
+  state.season = UNITIDX.has(code) ? code : null;
+  UNIV = null; LOSSKEY = "";
+  refresh(true);
+}));
+
+const lossSlider = document.getElementById("lossslider");
+function setLosses(v){
+  state.losses = Math.max(0, Math.min(30, v));
+  lossSlider.value = state.losses;
+  document.getElementById("lossval").textContent = state.losses;
+  document.querySelectorAll("#losspresets .chip").forEach(b =>
+    b.classList.toggle("on", +b.dataset.lb === state.losses));
+  lossFig.update(); lossTitle(); writeHash();
+}
+lossSlider.addEventListener("input", () => setLosses(+lossSlider.value));
+document.querySelectorAll("#losspresets .chip").forEach(b =>
+  b.addEventListener("click", () => setLosses(+b.dataset.lb)));
+
 // collapsed rail on narrow screens
 document.body.classList.add("rail-shut");
 document.getElementById("railtoggle").addEventListener("click", () => {
@@ -1496,12 +1836,13 @@ document.getElementById("railtoggle").addEventListener("click", () => {
   document.getElementById("railtoggle").textContent = shut ? "Filters" : "Done";
   if (!shut) return;
   // the charts were laid out behind an open rail; re-measure once it folds away
-  requestAnimationFrame(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); scat.update(); prof.update(); });
+  requestAnimationFrame(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); lossFig.redraw(); scat.update(); prof.update(); });
 });
 function railSummary(){
   const t = state.picks.length;
   document.getElementById("railsum").innerHTML =
     "<b>" + state.n + "</b> games · since <b>" + state.era + "</b>" +
+    (state.span === "career" ? " · across seasons" : "") +
     (state.overlap ? " · overlaps shown" : "") +
     (t ? " · <b>" + t + "</b> team" + (t > 1 ? "s" : "") + " highlighted" : "");
 }
@@ -1510,7 +1851,7 @@ function railSummary(){
 let rzT = null;
 addEventListener("resize", () => {
   clearTimeout(rzT);
-  rzT = setTimeout(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); scat.update(); prof.update(); }, 140);
+  rzT = setTimeout(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); lossFig.redraw(); scat.update(); prof.update(); }, 140);
 });
 addEventListener("scroll", () => {
   const h = document.documentElement;
@@ -1525,8 +1866,10 @@ function writeHash(){
   if (state.overlap) p.set("ov", 1);
   if (state.only) p.set("only", 1);
   if (state.picks.length) p.set("t", state.picks.join(","));
+  if (state.span !== "season") p.set("sp", state.span);
   if (state.season) p.set("s", state.season);
   if (state.mode !== "best") p.set("m", state.mode);
+  if (state.losses) p.set("L", state.losses);
   history.replaceState(null, "", "#" + p.toString());
 }
 function readHash(){
@@ -1536,8 +1879,10 @@ function readHash(){
   state.overlap = p.get("ov") === "1";
   state.only = p.get("only") === "1";
   if (p.has("t")) state.picks = p.get("t").split(",").filter(c => D.franchise[c]).slice(0, 12);
+  if (p.get("sp") === "career") state.span = "career";
   if (p.has("s")) state.season = p.get("s");
   if (p.get("m") === "last") state.mode = "last";
+  if (p.has("L")) state.losses = Math.max(0, Math.min(30, +p.get("L") || 0));
 }
 function syncControls(){
   nslider.value = state.n;
@@ -1550,6 +1895,12 @@ function syncControls(){
   onlyBox.checked = state.only;
   document.querySelectorAll("#prmode .chip").forEach(b =>
     b.classList.toggle("on", b.dataset.m === state.mode));
+  document.querySelectorAll("#spans .chip").forEach(b =>
+    b.classList.toggle("on", b.dataset.sp === state.span));
+  lossSlider.value = state.losses;
+  document.getElementById("lossval").textContent = state.losses;
+  document.querySelectorAll("#losspresets .chip").forEach(b =>
+    b.classList.toggle("on", +b.dataset.lb === state.losses));
 }
 function copyLink(){
   writeHash();
@@ -1588,8 +1939,11 @@ const EXCSS = `
 function exportChart(kind, fmt, btn){
   const svg = kind === "scatter" ? exportScatter()
             : kind === "season" ? exportSeason()
+            : kind === "losses" ? exportLosses()
             : exportLolli(kind);
-  const name = kind === "season"
+  const name = kind === "losses"
+    ? "hot-streaks-" + state.losses + "loss-" + state.era + "." + fmt
+    : kind === "season"
     ? "hot-streaks-" + (state.season || "season").toLowerCase() + "-" + state.era + "." + fmt
     : "hot-streaks-" + kind + "-" + state.n + "g-" + state.era +
       (state.overlap ? "-all" : "") + "." + fmt;
@@ -1632,7 +1986,7 @@ function exportLolli(kind){
   const rows = listFor(kind).slice(0, ROWS);
   const W = EX.W, P = EX.PAD, IW = W - P * 2;
   const rowH = 30, nameW = 300, padR = 120;
-  const val = j => kind === "record" ? R.w[j] / Math.max(1, R.w[j] + R.l[j]) : R.g[j] / 10;
+  const val = j => kind === "record" ? wp(R.w[j], R.l[j], state.n) : R.g[j] / 10;
   const base = kind === "record" ? .5 : 0;
   const hi = d3.max(rows, val) || 1;
   const x = d3.scaleLinear().domain([base, hi + (hi - base) * .06]).range([nameW, IW - padR]);
@@ -1671,7 +2025,7 @@ function exportLolli(kind){
    .attr("y2", top + rows.length * rowH).attr("stroke", "#C3C2B7");
 
   rows.forEach((j, k) => {
-    const s = S[R.s[j]], h = hueFor(s.t), on = !!h;
+    const s = U[R.s[j]], h = hueFor(s.t), on = !!h;
     const cy = top + k * rowH + rowH / 2, xv = x(val(j));
     const row = g.append("g");
     row.append("line").attr("x1", x(base)).attr("x2", xv).attr("y1", cy).attr("y2", cy)
@@ -1682,7 +2036,7 @@ function exportLolli(kind){
        .attr("text-anchor", "end").text(k + 1);
     row.append("text").attr("class", "nm").attr("x", nameW - 258).attr("y", cy + 5)
        .attr("fill", on ? "#0B0B0B" : "#52514E")
-       .attr("font-weight", on ? 600 : 400).text(s.label);
+       .attr("font-weight", on ? 600 : 400).text(winLabel(s, R.i[j], state.n));
     row.append("text").attr("class", "d vl").attr("x", xv + 12).attr("y", cy + 5)
        .attr("fill", on ? "#0B0B0B" : "#52514E").text(recLabel(j, kind));
   });
@@ -1753,18 +2107,72 @@ function exportScatter(){
   if (state.picks.length) {
     const want = new Set(state.picks), best = new Map();
     for (const j of new Set([...listFor("record", true), ...listFor("climb", true)])) {
-      const code = S[R.s[j]].t;
+      const code = U[R.s[j]].t;
       if (!want.has(code)) continue;
       const b = best.get(code);
       if (b === undefined || R.g[j] > R.g[b]) best.set(code, j);
     }
     for (const [code, j] of best) marks.push({j, hue: hueFor(code)});
   }
-  annotate(g, marks, x, yy, x1, 14, s => s.label);
+  annotate(g, marks, x, yy, x1, 14, (u, i, N) => winLabel(u, i, N));
 
   const note = state.overlap ? "Every stretch in the era is plotted." :
     "Overlapping stretches hidden, so each club's streak appears once.";
   g.append("text").attr("class", "src").attr("x", 0).attr("y", yb + 66).text(note + " " + SOURCE);
+  return {text: serialize(doc.node()), w: W, h: H};
+}
+
+function exportLosses(){
+  const ROWS = 25, rows = lossFig.rowsNow().slice(0, ROWS);
+  const W = EX.W, P = EX.PAD, IW = W - P * 2, rowH = 30, nameW = 300, padR = 130;
+  const hi = d3.max(rows, r => r.w) || 1;
+  const x = d3.scaleLinear().domain([0, hi * 1.04]).range([nameW, IW - padR]);
+
+  const doc = d3.create("svg").attr("xmlns", "http://www.w3.org/2000/svg");
+  doc.append("style").text(EXCSS);
+  const axY = 100 + (state.picks.length ? 22 : 0) + 26;
+  const H = 34 + axY + 12 + rows.length * rowH + 50;
+  doc.attr("viewBox", [0, 0, W, H]).attr("width", W).attr("height", H);
+  doc.append("rect").attr("width", W).attr("height", H).attr("fill", "#fff");
+  const g = doc.append("g").attr("transform", "translate(" + P + ",34)");
+
+  const era = state.era === 1871 ? "all-time" : "since " + state.era;
+  const L = state.losses;
+  exportHead(g,
+    L === 0 ? "The longest winning streaks in baseball, " + era
+            : "Most wins before the " + ord(L + 1) + " loss, " + era,
+    L === 0 ? "Consecutive wins inside " + (state.span === "career" ? "a franchise's run of games." : "a single season.")
+            : "The best run any club managed while dropping no more than " + L +
+              (L > 1 ? " games" : " game") + ".", IW);
+  legendInto(g, IW, 100);
+
+  const ax = g.append("g").attr("transform", "translate(0," + axY + ")");
+  ax.append("text").attr("class", "d cap").attr("x", 0).attr("y", -18).text("WINS IN THE RUN");
+  for (const t of x.ticks(8)) ax.append("text").attr("class", "ax").attr("x", x(t)).attr("y", 0)
+    .attr("text-anchor", "middle").text(t);
+  const top = axY + 12;
+  g.append("line").attr("x1", x(0)).attr("x2", x(0)).attr("y1", top)
+   .attr("y2", top + rows.length * rowH).attr("stroke", "#C3C2B7");
+
+  rows.forEach((r, k) => {
+    const u = U[r.ui], h = hueFor(u.t), on = !!h;
+    const cy = top + k * rowH + rowH / 2, xv = x(r.w);
+    const row = g.append("g");
+    row.append("line").attr("x1", x(0)).attr("x2", xv).attr("y1", cy).attr("y2", cy)
+       .attr("stroke", on ? h : "#E1E0D9").attr("stroke-width", on ? 3 : 2.4).attr("stroke-linecap", "round");
+    row.append("circle").attr("cx", xv).attr("cy", cy).attr("r", on ? 6.5 : 5)
+       .attr("fill", on ? h : "#8FA3B8").attr("stroke", "#fff").attr("stroke-width", 2);
+    row.append("text").attr("class", "rk").attr("x", nameW - 268).attr("y", cy + 4)
+       .attr("text-anchor", "end").text(k + 1);
+    row.append("text").attr("class", "nm").attr("x", nameW - 258).attr("y", cy + 5)
+       .attr("fill", on ? "#0B0B0B" : "#52514E").attr("font-weight", on ? 600 : 400)
+       .text(winLabel(u, r.i, r.N));
+    row.append("text").attr("class", "d vl").attr("x", xv + 12).attr("y", cy + 5)
+       .attr("fill", on ? "#0B0B0B" : "#52514E").text(lossFig.label(r));
+  });
+
+  g.append("text").attr("class", "src").attr("x", 0).attr("y", top + rows.length * rowH + 30)
+   .text((state.span === "career" ? "Runs may carry across the winter. " : "Runs stay inside one season. ") + SOURCE);
   return {text: serialize(doc.node()), w: W, h: H};
 }
 
@@ -1782,7 +2190,7 @@ function exportSeason(){
   const era = state.era === 1871 ? "all-time" : "since " + state.era;
   const best = rows.length ? bestRow(rows, "rankR") : null;
   exportHead(g,
-    s ? s.label + ": how historic, at every window length" : "Pick a club season",
+    s ? s.label + ": how historic, at every window length" : "Pick a club",
     best ? (state.mode === "last" ? "Their last " : "Their best ") + best.N + " games rank " +
            ord(best.rankR) + " " + era + ". Higher on the chart is more historic."
          : "All-time rank at every window length, " + era, IW);
