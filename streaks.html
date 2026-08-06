@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hot Streaks: The Best Stretches in Baseball History</title>
-<meta name="description" content="Pick any window of games — 10, 50, a full season — and see which clubs played the best ball over that stretch, and which ones climbed the most in Elo doing it. 1871 to today.">
+<meta name="description" content="Pick any window of games (10, 50, a full season) and see which clubs played the best ball over that stretch, and which ones climbed the most in Elo doing it. 1871 to today.">
 <style>
   :root{
     --ink:#0B0B0B;--sub:#52514E;--faint:#898781;--cloud:#C3C2B7;
     --bg:#fff;--soft:#F7F7F4;--line:#E1E0D9;--paper:#F0E9DA;
-    /* highlight palette — validated all-pairs (CVD + normal vision) on a white
+    /* highlight palette, validated all-pairs (CVD + normal vision) on a white
        surface; slot 6 and beyond fall back to ink rather than a generated hue */
     --h1:#1166CC;--h2:#E8772E;--h3:#0E9E74;--h4:#A31E5B;--h5:#8C6D1F;--h6:#0B0B0B;
     --display:"Futura","Trebuchet MS",sans-serif;
@@ -252,8 +252,8 @@
   <div class="leadin">
     <div>
       <div class="lbl">Best <span class="nn">50</span>-game stretch <span id="leadera">since 1901</span></div>
-      <p class="who" id="leadwho">—</p>
-      <p class="rec" id="leadrec">—</p>
+      <p class="who" id="leadwho">&nbsp;</p>
+      <p class="rec" id="leadrec">&nbsp;</p>
     </div>
     <div>
       <div class="lbl">Game by game</div>
@@ -265,8 +265,8 @@
 
 <section id="record">
   <h2>The best <span class="nn">50</span> games a club ever strung together</h2>
-  <p class="sub" id="recsub">Ranked by winning percentage over the stretch. Each stem runs from .500 —
-    a coin-flip team — out to what the club actually did.</p>
+  <p class="sub" id="recsub">Ranked by winning percentage over the stretch. Each stem runs from .500,
+    what a coin-flip team would do, out to what the club actually did.</p>
   <div class="fig">
     <div class="fighead">
       <div class="ftitle" id="rectitle">Best records over 50 games</div>
@@ -277,7 +277,7 @@
       </div>
     </div>
     <div class="lolli" id="reclolli"><svg></svg><div class="spacer"></div></div>
-    <div class="scrollcue">Keep scrolling — the list runs deep</div>
+    <div class="scrollcue">Keep scrolling. The list runs deep</div>
     <p class="srcline" id="recsrc"></p>
   </div>
 </section>
@@ -285,7 +285,7 @@
 <section id="climb">
   <h2>And the clubs who gained the most ground</h2>
   <p class="sub">Elo rewards beating good teams and punishes losing to bad ones, so a climb this steep
-    means a club did not just win — it won against the league's best, on the road, when it counted.</p>
+    means a club did more than win. It beat the league's best, on the road, when it counted.</p>
   <div class="fig">
     <div class="fighead">
       <div class="ftitle" id="climbtitle">Biggest Elo gains over 50 games</div>
@@ -296,7 +296,7 @@
       </div>
     </div>
     <div class="lolli" id="climblolli"><svg></svg><div class="spacer"></div></div>
-    <div class="scrollcue">Keep scrolling — the list runs deep</div>
+    <div class="scrollcue">Keep scrolling. The list runs deep</div>
     <p class="srcline" id="climbsrc"></p>
   </div>
 </section>
@@ -304,7 +304,7 @@
 <section id="both">
   <h2>Winning a lot and getting better are not the same thing</h2>
   <p class="sub" id="scatsub">Every dot is one stretch of games. Teams to the right won; teams up top
-    climbed. The gap between those two ideas is the whole point of a rating system — a great club
+    climbed. The gap between those two ideas is the whole point of a rating system: a great club
     beating up on a weak schedule wins plenty and gains almost nothing.</p>
   <div class="fig">
     <div class="fighead">
@@ -322,7 +322,7 @@
 
 <footer>
   <p><b>How to read this.</b> A "stretch" is any run of consecutive regular-season games inside a
-    single season — game 12 through 61, say. Stretches never cross the winter, because Elo resets
+    single season, game 12 through 61, say. Stretches never cross the winter, because Elo resets
     partway toward the league average between seasons and a rating jump across that gap would be an
     artifact of the reset, not of baseball. Playoff games are excluded.</p>
   <p><b>Overlapping runs.</b> A hot 50-game stretch contains dozens of other very good 50-game
@@ -459,7 +459,7 @@ function fit(str, room, size, fallback){
 const state = {n: 50, era: 1901, overlap: false, only: false, picks: []};
 readHash();
 
-// Runs for the current (n, era). Flat typed arrays — one entry per stretch.
+// Runs for the current (n, era). Flat typed arrays, one entry per stretch.
 let R = {len: 0, s: null, i: null, w: null, l: null, g: null, byRecord: null, byClimb: null};
 
 function computeRuns(){
@@ -486,7 +486,7 @@ function computeRuns(){
 
   // Both rankings sort by small integers, so a counting sort does it in one
   // linear pass and the N slider keeps up with a drag.
-  // Record ranks on win percentage in thousandths — the same number the axis
+  // Record ranks on win percentage in thousandths, the same number the axis
   // shows, so a longer stem is never below a shorter one.
   const keyRec = new Int32Array(total), keyCl = new Int32Array(total);
   for (let j = 0; j < total; j++) {
@@ -518,7 +518,7 @@ function countingOrder(keys){
   return out;
 }
 // The counting sort leaves ties in chronological order. Nobody scrolls deep
-// enough to care down the list, but the head is the whole story — sort that
+// enough to care down the list, but the head is the whole story, so sort that
 // part properly with the full comparator.
 function refineHead(order, cmp){
   const HEAD = Math.min(order.length, 6000);
@@ -631,7 +631,7 @@ function Lollipop(sel, kind){
     head.select("rect.hdbg").attr("y", 0).attr("width", W).attr("height", HEADH - 5);
     head.select("line.hdrule").attr("x1", 0).attr("x2", W).attr("y1", HEADH - 5).attr("y2", HEADH - 5);
 
-    // tick count follows the plot width, not the window width — the name column
+    // tick count follows the plot width, not the window width. The name column
     // can eat most of a phone screen and leave room for only two labels
     const ticks = scale.ticks(Math.max(2, Math.floor((W - scale.padR - scale.nameW) / 66)));
     const tk = head.selectAll("text.tk").data(ticks, d => d);
@@ -713,7 +713,7 @@ const scat = (function(){
   const M = {t: 18, r: 22, b: 46, l: 58};
   const CELL = 6;
 
-  // "Only these" filters the ranked lists but not the cloud — a highlighted
+  // "Only these" filters the ranked lists but not the cloud: a highlighted
   // club has to be readable against the field it stood out from.
   function pointSet(){
     if (state.overlap) return null;                    // null means "every run"
@@ -883,7 +883,7 @@ const scat = (function(){
    point (a club's best stretch is often also the chart's extreme), and a
    leader line whenever a label has to move off its dot to avoid a collision. */
 function annotate(g, marks, x, y, W, size, nameOf){
-  // One stretch can be flagged twice — the chart's extreme *and* a highlighted
+  // One stretch can be flagged twice: the chart's extreme *and* a highlighted
   // club's best. Merge those into a single label that keeps both the note and
   // the club's colour.
   const seen = new Map(), items = [];
@@ -905,7 +905,7 @@ function annotate(g, marks, x, y, W, size, nameOf){
     while (placed.some(p => Math.abs(p.y - ly) < size + 3 &&
                             Math.abs(p.x - px) < (wide + p.w) / 2 + 16)) ly -= size + 3;
     placed.push({x: px, y: ly, w: wide});
-    if (py - ly > 9) {                                  // nudged off its dot — draw the connector
+    if (py - ly > 9) {                                  // nudged off its dot, so draw the connector
       g.append("path").attr("d", "M" + px + "," + (py - 6) + "V" + (ly - size * .32) +
         "h" + (side * 7)).attr("fill", "none").attr("stroke", m.hue || INK)
         .attr("stroke-width", 1).attr("opacity", .5);
@@ -1006,7 +1006,7 @@ function titles(){
     "Record vs. Elo gained, " + state.n + "-game stretches, " + era;
   const note = state.overlap
     ? "Every stretch is shown, including ones that share games."
-    : "Overlapping stretches hidden — each club's streak appears once.";
+    : "Overlapping stretches hidden, so each club's streak appears once.";
   document.getElementById("recsrc").textContent = note + " " + SOURCE;
   document.getElementById("climbsrc").textContent = note + " " + SOURCE;
   document.getElementById("scatsrc").textContent =
@@ -1159,7 +1159,7 @@ function copyLink(){
   writeHash();
   const url = location.origin + location.pathname + location.hash;
   navigator.clipboard.writeText(url).then(
-    () => toast("Link copied — it opens on this exact view"),
+    () => toast("Link copied. It opens on this exact view"),
     () => toast("Couldn't copy; the URL bar has it"));
 }
 document.getElementById("sharetop").addEventListener("click", e => { e.preventDefault(); copyLink(); });
@@ -1199,7 +1199,7 @@ function exportChart(kind, fmt, btn){
   } else {
     svgToPng(svg.text, svg.w, svg.h, 2).then(blob => {
       download(blob, name); flash(btn, "Saved");
-    }).catch(() => toast("Export failed — try the SVG"));
+    }).catch(() => toast("Export failed, try the SVG"));
   }
 }
 function flash(btn, msg){
@@ -1255,7 +1255,7 @@ function exportLolli(kind){
   exportHead(g, title, deck, IW);
   legendInto(g, IW, 100);
 
-  // axis — the caption sits a line above the ticks so it never crowds the
+  // axis: the caption sits a line above the ticks so it never crowds the
   // first tick label, which is right at the baseline
   const y = axY;
   const ax = g.append("g").attr("transform", "translate(0," + y + ")");
