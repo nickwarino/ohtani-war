@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hot Streaks: The Best Stretches in Baseball History</title>
+<meta name="description" content="Pick any window of games — 10, 50, a full season — and see which clubs played the best ball over that stretch, and which ones climbed the most in Elo doing it. 1871 to today.">
+<style>
+  :root{
+    --ink:#0B0B0B;--sub:#52514E;--faint:#898781;--cloud:#C3C2B7;
+    --bg:#fff;--soft:#F7F7F4;--line:#E1E0D9;--paper:#F0E9DA;
+    /* highlight palette — validated all-pairs (CVD + normal vision) on a white
+       surface; slot 6 and beyond fall back to ink rather than a generated hue */
+    --h1:#1166CC;--h2:#E8772E;--h3:#0E9E74;--h4:#A31E5B;--h5:#8C6D1F;--h6:#0B0B0B;
+    --display:"Futura","Trebuchet MS",sans-serif;
+    --body:"Gill Sans","Gill Sans MT","Helvetica Neue",Helvetica,Arial,sans-serif;}
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;padding-top:48px;background:var(--bg);color:var(--ink);font-family:var(--body);
+       line-height:1.6;font-size:18px;-webkit-font-smoothing:antialiased;}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--h1);z-index:300;}
+
+  /* ---------- chrome ---------- */
+  nav{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(255,255,255,.94);
+      backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:200;
+      display:flex;align-items:center;gap:4px;padding:0 16px;}
+  nav .brand{font-family:var(--display);font-weight:bold;font-size:14px;letter-spacing:.02em;margin-right:auto;}
+  nav .brand em{font-style:normal;color:var(--h1);}
+  nav a{font-family:var(--display);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;
+        color:var(--sub);text-decoration:none;padding:6px 9px;border-radius:6px;transition:.15s;white-space:nowrap;}
+  nav a:hover,nav a.active{color:var(--h1);background:var(--soft);}
+  @media(max-width:760px){nav .navlinks{display:none;}}
+
+  /* ---------- control rail ---------- */
+  #rail{position:sticky;top:48px;z-index:190;background:rgba(255,255,255,.97);
+        backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+  .railin{max-width:1180px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;
+          gap:14px;flex-wrap:wrap;}
+  .railbar{display:none;align-items:center;gap:10px;width:100%;}
+  .railbar .summary{font-size:14px;color:var(--sub);margin-right:auto;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .railbar .summary b{color:var(--ink);}
+  .cap{font-family:var(--display);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+       color:var(--faint);white-space:nowrap;}
+  .grp{display:flex;align-items:center;gap:8px;}
+  .grp+.grp{border-left:1px solid var(--line);padding-left:14px;}
+  .nwrap{display:flex;align-items:center;gap:9px;}
+  .nwrap input[type=range]{width:150px;accent-color:var(--h1);}
+  .nbig{font-family:var(--display);font-weight:bold;font-size:26px;line-height:1;color:var(--h1);
+        min-width:46px;text-align:right;font-variant-numeric:tabular-nums;}
+  .nbig small{font-size:11px;color:var(--faint);font-weight:normal;letter-spacing:.06em;
+              text-transform:uppercase;display:block;text-align:right;margin-top:2px;}
+  .chips{display:flex;gap:4px;flex-wrap:wrap;}
+  .chip{font-family:var(--display);font-weight:bold;font-size:11px;border:1.5px solid var(--line);
+        background:#fff;color:var(--sub);padding:4px 10px;border-radius:30px;cursor:pointer;
+        transition:.15s;white-space:nowrap;}
+  .chip.on{background:var(--h1);color:#fff;border-color:var(--h1);}
+  .chip:not(.on):hover{color:var(--h1);border-color:var(--h1);}
+  .sw{display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;}
+  .sw input{position:absolute;opacity:0;pointer-events:none;}
+  .track{width:36px;height:20px;border-radius:20px;background:var(--cloud);position:relative;transition:.18s;flex:none;}
+  .track::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+                background:#fff;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.28);}
+  .sw input:checked+.track{background:var(--h1);}
+  .sw input:checked+.track::after{transform:translateX(16px);}
+  .sw span{font-size:13.5px;color:var(--sub);white-space:nowrap;}
+  .sw input:focus-visible+.track{outline:2px solid var(--h1);outline-offset:2px;}
+
+  /* team search + legend chips */
+  .tsearch{position:relative;}
+  .tsearch input{font-family:var(--body);font-size:14px;border:1.5px solid var(--line);
+    border-radius:30px;padding:6px 14px;width:200px;outline:none;color:var(--ink);background:#fff;}
+  .tsearch input:focus{border-color:var(--h1);}
+  #tres{position:absolute;top:38px;left:0;min-width:250px;background:#fff;border:1px solid var(--line);
+    border-radius:10px;box-shadow:0 16px 38px -16px rgba(20,30,50,.4);display:none;z-index:210;
+    overflow:hidden;max-height:300px;overflow-y:auto;}
+  #tres div{padding:7px 13px;cursor:pointer;font-size:14px;display:flex;justify-content:space-between;gap:12px;}
+  #tres div:hover,#tres div.sel{background:var(--soft);}
+  #tres div span{color:var(--faint);font-size:12px;font-variant-numeric:tabular-nums;}
+  #picks{display:flex;gap:5px;flex-wrap:wrap;}
+  .pick{font-family:var(--display);font-weight:bold;font-size:12.5px;border:1.5px solid var(--line);
+    border-radius:30px;padding:3px 8px 3px 9px;display:inline-flex;align-items:center;gap:6px;
+    background:#fff;color:var(--ink);}
+  .pick i{width:10px;height:10px;border-radius:50%;flex:none;}
+  .pick b{font-weight:bold;}
+  .pick u{text-decoration:none;color:var(--faint);cursor:pointer;font-size:14px;line-height:1;padding:0 1px;}
+  .pick u:hover{color:#C0392B;}
+  .hint{font-size:12.5px;color:var(--faint);}
+
+  /* Narrow screens: the rail folds to one summary line so it stops eating the
+     screen, and opens on tap. */
+  @media(max-width:820px){
+    .railbar{display:flex;}
+    body.rail-shut .railin > *:not(.railbar){display:none;}
+    body.rail-shut .railin{padding-top:7px;padding-bottom:7px;}
+    .railin{gap:10px;}
+    .grp{width:100%;}
+    .grp+.grp{border-left:none;padding-left:0;border-top:1px solid var(--line);padding-top:9px;}
+    .grp{flex-wrap:wrap;}
+    .nwrap input[type=range]{flex:1;width:auto;min-width:90px;}
+    .tsearch input{width:100%;}
+    .tsearch{flex:1;min-width:150px;}
+  }
+
+  /* ---------- hero ---------- */
+  header.hero{max-width:1180px;margin:0 auto;padding:40px 18px 8px;}
+  .eyebrow{font-family:var(--display);text-transform:uppercase;letter-spacing:.17em;font-size:12px;
+    color:var(--h1);font-weight:bold;margin-bottom:12px;}
+  h1{font-family:var(--display);font-weight:bold;font-size:clamp(38px,6.4vw,74px);line-height:1.02;
+     letter-spacing:-.022em;margin:0 0 16px;max-width:17ch;}
+  .deck{font-size:clamp(17px,2.1vw,21px);color:var(--sub);max-width:56ch;margin:0 0 30px;}
+  .leadin{border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:18px 0 20px;
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:30px;align-items:start;}
+  @media(max-width:800px){.leadin{grid-template-columns:1fr;gap:18px;}}
+  .leadin .lbl{font-family:var(--display);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--faint);margin-bottom:7px;}
+  .leadin .who{font-family:var(--display);font-weight:bold;font-size:clamp(24px,3.4vw,36px);
+    line-height:1.06;letter-spacing:-.01em;margin:0 0 4px;}
+  .leadin .rec{font-size:16px;color:var(--sub);}
+  .leadin .rec b{color:var(--ink);font-variant-numeric:tabular-nums;}
+  #strip{width:100%;height:52px;display:block;}
+  .stripnote{font-size:12.5px;color:var(--faint);margin-top:4px;}
+
+  /* ---------- sections ---------- */
+  section{max-width:1180px;margin:0 auto;padding:56px 18px 10px;}
+  h2{font-family:var(--display);font-weight:bold;font-size:clamp(26px,3.6vw,40px);line-height:1.06;
+     letter-spacing:-.015em;margin:0 0 10px;max-width:22ch;}
+  .sub{font-size:16.5px;color:var(--sub);max-width:64ch;margin:0 0 4px;}
+  .fig{margin-top:22px;border-top:1px solid var(--line);padding-top:14px;}
+  .fighead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+  .fighead .ftitle{font-family:var(--display);font-weight:bold;font-size:15px;letter-spacing:.01em;margin-right:auto;}
+  .tools{display:flex;gap:4px;align-items:center;}
+  .tool{font-family:var(--display);font-weight:bold;font-size:10.5px;letter-spacing:.06em;
+    text-transform:uppercase;border:1.5px solid var(--line);background:#fff;color:var(--sub);
+    padding:4px 9px;border-radius:30px;cursor:pointer;transition:.15s;white-space:nowrap;}
+  .tool:hover{color:var(--h1);border-color:var(--h1);}
+  .tool.ok{color:#0E9E74;border-color:#0E9E74;}
+  .srcline{font-size:11.5px;color:var(--faint);margin-top:9px;}
+  .srcline a{color:var(--faint);}
+
+  /* lollipop scroller */
+  .lolli{position:relative;height:604px;overflow-y:auto;overflow-x:hidden;
+         scrollbar-width:thin;scrollbar-color:var(--cloud) transparent;
+         border-bottom:1px solid var(--line);}
+  .lolli::-webkit-scrollbar{width:9px;}
+  .lolli::-webkit-scrollbar-thumb{background:var(--cloud);border-radius:5px;}
+  .lolli::-webkit-scrollbar-track{background:transparent;}
+  .lolli svg{position:sticky;top:0;display:block;width:100%;height:604px;z-index:2;}
+  .lolli .spacer{width:1px;}
+  .scrollcue{font-family:var(--display);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--faint);text-align:center;padding:7px 0 0;}
+
+  .scatwrap{position:relative;}
+  .scatwrap canvas{position:absolute;top:0;left:0;pointer-events:none;}
+  .scatwrap svg{display:block;width:100%;position:relative;z-index:1;}
+
+  .tick text{font-family:var(--body);font-size:12px;fill:var(--faint);}
+  .tick line{stroke:var(--line);}
+  .domain{stroke:none;}
+  .axlab{font-family:var(--display);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;fill:var(--faint);}
+
+  #tip{position:fixed;pointer-events:none;background:rgba(255,255,255,.98);border:1px solid var(--line);
+    border-radius:9px;box-shadow:0 16px 40px -16px rgba(20,30,50,.5);padding:9px 12px;font-size:13.5px;
+    z-index:280;display:none;max-width:290px;line-height:1.45;}
+  #tip .tt{font-family:var(--display);font-weight:bold;font-size:14.5px;margin-bottom:2px;}
+  #tip .td{color:var(--faint);font-size:12px;margin-bottom:5px;}
+  #tip .tr{color:var(--sub);font-variant-numeric:tabular-nums;}
+  #tip .tr b{color:var(--ink);}
+
+  #toast{position:fixed;left:50%;bottom:30px;transform:translate(-50%,14px);background:var(--ink);
+    color:#fff;font-family:var(--display);font-size:13px;letter-spacing:.02em;padding:10px 18px;
+    border-radius:30px;z-index:290;opacity:0;transition:.22s;pointer-events:none;}
+  #toast.on{opacity:1;transform:translate(-50%,0);}
+
+  footer{max-width:1180px;margin:60px auto 0;padding:22px 18px 60px;border-top:1px solid var(--line);
+    font-size:13.5px;color:var(--faint);}
+  footer p{max-width:74ch;margin:0 0 9px;}
+  footer b{color:var(--sub);}
+  #boot{padding:150px 18px 60px;max-width:1180px;margin:0 auto;color:var(--faint);
+    font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:12px;}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<nav>
+  <div class="brand">Hot <em>Streaks</em></div>
+  <div class="navlinks">
+    <a href="#record">Best records</a>
+    <a href="#climb">Biggest climbs</a>
+    <a href="#both">Record vs. climb</a>
+  </div>
+  <a href="index.html" class="navlinks" style="border-left:1px solid var(--line);margin-left:5px;padding-left:11px;">&larr; Ohtani WAR</a>
+  <a href="#" id="sharetop" style="border:1.5px solid var(--line);border-radius:30px;margin-left:8px;">Share view</a>
+</nav>
+
+<div id="rail">
+  <div class="railin">
+    <div class="railbar">
+      <div class="summary" id="railsum"></div>
+      <button class="chip" id="railtoggle">Filters</button>
+    </div>
+    <div class="grp">
+      <div class="nwrap">
+        <div class="nbig"><span id="nval">50</span><small>games</small></div>
+        <input type="range" id="nslider" min="5" max="162" value="50" step="1" aria-label="Games in the stretch">
+      </div>
+      <div class="chips" id="npresets">
+        <button class="chip" data-n="10">10</button>
+        <button class="chip" data-n="25">25</button>
+        <button class="chip on" data-n="50">50</button>
+        <button class="chip" data-n="81">81</button>
+        <button class="chip" data-n="162">162</button>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="cap">Since</span>
+      <div class="chips" id="eras">
+        <button class="chip" data-y="1871">1871</button>
+        <button class="chip on" data-y="1901">1901</button>
+        <button class="chip" data-y="1920">1920</button>
+        <button class="chip" data-y="1961">1961</button>
+        <button class="chip" data-y="1995">1995</button>
+        <button class="chip" data-y="2010">2010</button>
+      </div>
+    </div>
+    <div class="grp">
+      <label class="sw"><input type="checkbox" id="overlap"><span class="track"></span>
+        <span>Show overlapping runs</span></label>
+    </div>
+    <div class="grp">
+      <div class="tsearch">
+        <input id="tinput" type="text" placeholder="Highlight a team…" autocomplete="off" spellcheck="false">
+        <div id="tres"></div>
+      </div>
+      <div id="picks"></div>
+      <label class="sw" id="onlywrap" style="display:none"><input type="checkbox" id="onlymine">
+        <span class="track"></span><span>Only these</span></label>
+    </div>
+  </div>
+</div>
+
+<div id="boot">Loading 155 seasons of games…</div>
+
+<main id="app" style="display:none">
+<header class="hero">
+  <div class="eyebrow">MLB Elo archive · 1871–<span id="thruyr">2026</span></div>
+  <h1>How hot can a baseball team get?</h1>
+  <p class="deck">Every team's season breaks into overlapping stretches of games. Set the length of
+    the stretch, and this ranks all of them: who played the best ball over that span, and who climbed
+    the most in Elo, the rating that judges each win by the quality of the opponent.</p>
+  <div class="leadin">
+    <div>
+      <div class="lbl">Best <span class="nn">50</span>-game stretch <span id="leadera">since 1901</span></div>
+      <p class="who" id="leadwho">—</p>
+      <p class="rec" id="leadrec">—</p>
+    </div>
+    <div>
+      <div class="lbl">Game by game</div>
+      <svg id="strip" role="img" aria-label="Game-by-game result strip for the best stretch"></svg>
+      <p class="stripnote" id="stripnote">&nbsp;</p>
+    </div>
+  </div>
+</header>
+
+<section id="record">
+  <h2>The best <span class="nn">50</span> games a club ever strung together</h2>
+  <p class="sub" id="recsub">Ranked by winning percentage over the stretch. Each stem runs from .500 —
+    a coin-flip team — out to what the club actually did.</p>
+  <div class="fig">
+    <div class="fighead">
+      <div class="ftitle" id="rectitle">Best records over 50 games</div>
+      <div class="tools">
+        <button class="tool" data-share="record">Copy link</button>
+        <button class="tool" data-png="record">PNG</button>
+        <button class="tool" data-svg="record">SVG</button>
+      </div>
+    </div>
+    <div class="lolli" id="reclolli"><svg></svg><div class="spacer"></div></div>
+    <div class="scrollcue">Keep scrolling — the list runs deep</div>
+    <p class="srcline" id="recsrc"></p>
+  </div>
+</section>
+
+<section id="climb">
+  <h2>And the clubs who gained the most ground</h2>
+  <p class="sub">Elo rewards beating good teams and punishes losing to bad ones, so a climb this steep
+    means a club did not just win — it won against the league's best, on the road, when it counted.</p>
+  <div class="fig">
+    <div class="fighead">
+      <div class="ftitle" id="climbtitle">Biggest Elo gains over 50 games</div>
+      <div class="tools">
+        <button class="tool" data-share="climb">Copy link</button>
+        <button class="tool" data-png="climb">PNG</button>
+        <button class="tool" data-svg="climb">SVG</button>
+      </div>
+    </div>
+    <div class="lolli" id="climblolli"><svg></svg><div class="spacer"></div></div>
+    <div class="scrollcue">Keep scrolling — the list runs deep</div>
+    <p class="srcline" id="climbsrc"></p>
+  </div>
+</section>
+
+<section id="both">
+  <h2>Winning a lot and getting better are not the same thing</h2>
+  <p class="sub" id="scatsub">Every dot is one stretch of games. Teams to the right won; teams up top
+    climbed. The gap between those two ideas is the whole point of a rating system — a great club
+    beating up on a weak schedule wins plenty and gains almost nothing.</p>
+  <div class="fig">
+    <div class="fighead">
+      <div class="ftitle" id="scattitle">Record vs. Elo gained, 50-game stretches</div>
+      <div class="tools">
+        <button class="tool" data-share="scatter">Copy link</button>
+        <button class="tool" data-png="scatter">PNG</button>
+        <button class="tool" data-svg="scatter">SVG</button>
+      </div>
+    </div>
+    <div class="scatwrap" id="scat"><canvas></canvas><svg></svg></div>
+    <p class="srcline" id="scatsrc"></p>
+  </div>
+</section>
+
+<footer>
+  <p><b>How to read this.</b> A "stretch" is any run of consecutive regular-season games inside a
+    single season — game 12 through 61, say. Stretches never cross the winter, because Elo resets
+    partway toward the league average between seasons and a rating jump across that gap would be an
+    artifact of the reset, not of baseball. Playoff games are excluded.</p>
+  <p><b>Overlapping runs.</b> A hot 50-game stretch contains dozens of other very good 50-game
+    stretches that share most of the same games. By default the lists hide those near-duplicates and
+    show a club's streak once. Flip the switch to see every stretch, which is what the scatterplot's
+    full cloud is made of.</p>
+  <p><b>Elo</b> is FiveThirtyEight's rating: every club starts around 1500, wins and losses move the
+    number by an amount that depends on the opponent's strength, the margin, and home field. Roughly
+    25 points of Elo is worth one win over a full season.</p>
+  <p id="footsrc"></p>
+</footer>
+</main>
+
+<div id="tip"></div>
+<div id="toast"></div>
+
+<script src="web/d3.v7.min.js"></script>
+<script src="web/elo_data.js?v=202608060700"></script>
+<script>
+(function(){
+"use strict";
+const D = window.ELO_DATA;
+const HUE = ["#1166CC","#E8772E","#0E9E74","#A31E5B","#8C6D1F"];
+const INK = "#0B0B0B", FAINT = "#898781", CLOUD = "#C3C2B7", LINE = "#E1E0D9", SUB = "#52514E";
+const MONTH = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const SOURCE = "Source: FiveThirtyEight MLB Elo archive, through " + prettyDate(D.through) +
+               ". Chart: Nick Warino.";
+
+/* ============================ 1. data prep ============================ */
+// Cities get dropped before nicknames do when a label has to shrink, so a
+// squeezed row reads "1906 White Sox" rather than "1906 Sox".
+const CITIES = ["New York","Los Angeles","San Francisco","San Diego","St. Louis","Kansas City",
+  "Tampa Bay","Fort Wayne","New Haven","Rockford","Middletown","Indianapolis","Philadelphia",
+  "Pittsburgh","Cincinnati","Washington","Milwaukee","Minnesota","Cleveland","Providence",
+  "Rochester","Worcester","Syracuse","Richmond","Louisville","Baltimore","California","Colorado",
+  "Elizabeth","Sacramento","Montreal","Anaheim","Brooklyn","Oakland","Seattle","Toronto","Chicago",
+  "Detroit","Houston","Atlanta","Arizona","Buffalo","Boston","Keokuk","Toledo","Miami","Texas",
+  "Florida","Troy","Hartford","Denver"];
+function nickname(name){
+  for (const c of CITIES) if (name.startsWith(c + " ")) return name.slice(c.length + 1);
+  return name;
+}
+// One pass over the season log to build the prefix sums every window query needs.
+const S = D.seasons;
+for (const s of S) {
+  const n = s.r.length;
+  const cw = new Uint16Array(n + 1), cl = new Uint16Array(n + 1), cx = new Int32Array(n + 1);
+  const doy = new Uint16Array(n);
+  let day = dayOfYear(s.d);
+  for (let i = 0; i < n; i++) {
+    doy[i] = day;
+    if (i < n - 1) day += s.o[i];
+    const c = s.r.charCodeAt(i);                       // 87 W · 76 L · 84 T
+    cw[i + 1] = cw[i] + (c === 87 ? 1 : 0);
+    cl[i + 1] = cl[i] + (c === 76 ? 1 : 0);
+    cx[i + 1] = cx[i] + s.x[i];
+  }
+  s.n = n; s.cw = cw; s.cl = cl; s.cx = cx; s.doy = doy;
+  s.name = franchiseName(s.t, s.y);
+  s.label = s.y + " " + s.name;
+  s.short = s.y + " " + nickname(s.name);
+}
+
+const MAXY = d3.max(S, s => s.y);
+document.getElementById("thruyr").textContent = MAXY;
+
+// search index: every name a franchise has ever worn, plus its code
+const NAMEIDX = (function(){
+  const m = new Map();
+  for (const [code, eras] of Object.entries(D.franchise)) {
+    const names = new Set(eras.map(e => e[1]));
+    m.set(code, {code, now: eras[eras.length - 1][1], all: [...names]});
+  }
+  return m;
+})();
+const SEARCHROWS = (function(){
+  const rows = [];
+  for (const [code, f] of NAMEIDX) {
+    const seen = S.filter(s => s.t === code);
+    if (!seen.length) continue;
+    rows.push({code, label: f.now, alt: f.all.join(" · "),
+               span: d3.min(seen, s => s.y) + "–" + d3.max(seen, s => s.y),
+               hay: (f.all.join(" ") + " " + code).toLowerCase(),
+               last: d3.max(seen, s => s.y)});
+  }
+  return rows.sort((a, b) => b.last - a.last || a.label.localeCompare(b.label));
+})();
+
+function franchiseName(code, year){
+  const eras = D.franchise[code];
+  if (!eras) return code;
+  let name = eras[0][1];
+  for (const [start, n] of eras) if (year >= start) name = n;
+  return name;
+}
+function dayOfYear(iso){
+  const [y, m, d] = iso.split("-").map(Number);
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 1)) / 864e5) + 1;
+}
+function dateOf(season, i){
+  return new Date(Date.UTC(season.y, 0, season.doy[i]));
+}
+function md(dt){ return MONTH[dt.getUTCMonth()] + " " + dt.getUTCDate(); }
+function prettyDate(iso){
+  const [y, m, d] = iso.split("-").map(Number);
+  return MONTH[m - 1] + " " + d + ", " + y;
+}
+function pct(w, l){
+  const g = w + l;
+  if (!g) return ".500";
+  const v = w / g;
+  return v >= 1 ? "1.000" : v.toFixed(3).replace(/^0/, "");
+}
+function signed(v){ return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(Math.round(v)); }
+
+// Text measurement, so labels are sized against real glyphs rather than a
+// character count that lies the moment a club is called the Diamondbacks.
+const MEAS = document.createElement("canvas").getContext("2d");
+function textW(str, size, display){
+  MEAS.font = (display ? "bold " : "") + size + 'px ' + (display
+    ? 'Futura,"Trebuchet MS",sans-serif'
+    : '"Gill Sans","Gill Sans MT","Helvetica Neue",Helvetica,Arial,sans-serif');
+  return MEAS.measureText(str).width;
+}
+function fit(str, room, size, fallback){
+  if (textW(str, size) <= room) return str;
+  if (fallback && textW(fallback, size) <= room) return fallback;
+  let t = fallback || str;
+  while (t.length > 4 && textW(t + "…", size) > room) t = t.slice(0, -1);
+  return t + "…";
+}
+
+/* ============================ 2. app state ============================ */
+const state = {n: 50, era: 1901, overlap: false, only: false, picks: []};
+readHash();
+
+// Runs for the current (n, era). Flat typed arrays — one entry per stretch.
+let R = {len: 0, s: null, i: null, w: null, l: null, g: null, byRecord: null, byClimb: null};
+
+function computeRuns(){
+  const N = state.n, era = state.era;
+  let total = 0;
+  for (const s of S) if (s.y >= era && s.n >= N) total += s.n - N + 1;
+
+  const rs = new Uint16Array(total), ri = new Uint16Array(total),
+        rw = new Uint8Array(total), rl = new Uint8Array(total), rg = new Int16Array(total);
+  let k = 0;
+  for (let si = 0; si < S.length; si++) {
+    const s = S[si];
+    if (s.y < era || s.n < N) continue;
+    const last = s.n - N;
+    for (let i = 0; i <= last; i++) {
+      rs[k] = si; ri[k] = i;
+      rw[k] = s.cw[i + N] - s.cw[i];
+      rl[k] = s.cl[i + N] - s.cl[i];
+      rg[k] = s.cx[i + N] - s.cx[i];
+      k++;
+    }
+  }
+  R.len = total; R.s = rs; R.i = ri; R.w = rw; R.l = rl; R.g = rg;
+
+  // Both rankings sort by small integers, so a counting sort does it in one
+  // linear pass and the N slider keeps up with a drag.
+  // Record ranks on win percentage in thousandths — the same number the axis
+  // shows, so a longer stem is never below a shorter one.
+  const keyRec = new Int32Array(total), keyCl = new Int32Array(total);
+  for (let j = 0; j < total; j++) {
+    const g = rw[j] + rl[j];
+    keyRec[j] = g ? Math.round(1000 * rw[j] / g) : 500;
+    keyCl[j] = rg[j];
+  }
+  R.byRecord = countingOrder(keyRec);
+  R.byClimb  = countingOrder(keyCl);
+  refineHead(R.byRecord, (a, b) => (keyRec[b] - keyRec[a]) || (rg[b] - rg[a]) || (rw[b] - rw[a]));
+  refineHead(R.byClimb,  (a, b) => (rg[b] - rg[a]) || (keyRec[b] - keyRec[a]));
+  cache.clear();
+}
+
+// Stable descending counting sort over an integer key array.
+function countingOrder(keys){
+  const n = keys.length;
+  if (!n) return new Uint32Array(0);
+  let lo = keys[0], hi = keys[0];
+  for (let j = 1; j < n; j++) { const v = keys[j]; if (v < lo) lo = v; else if (v > hi) hi = v; }
+  const buckets = hi - lo + 1;
+  const cnt = new Uint32Array(buckets);
+  for (let j = 0; j < n; j++) cnt[keys[j] - lo]++;
+  const pos = new Uint32Array(buckets);
+  let run = 0;                                        // walk high key -> low, so the order is descending
+  for (let b = buckets - 1; b >= 0; b--) { pos[b] = run; run += cnt[b]; }
+  const out = new Uint32Array(n);
+  for (let j = 0; j < n; j++) out[pos[keys[j] - lo]++] = j;
+  return out;
+}
+// The counting sort leaves ties in chronological order. Nobody scrolls deep
+// enough to care down the list, but the head is the whole story — sort that
+// part properly with the full comparator.
+function refineHead(order, cmp){
+  const HEAD = Math.min(order.length, 6000);
+  const head = Array.from(order.subarray(0, HEAD)).sort(cmp);
+  order.set(head, 0);
+}
+
+/* The rows each list shows, resolved from state. Hiding overlaps means walking
+   the ranked list top-down and keeping a run only when it shares no games with
+   a run already kept from the same season. */
+const cache = new Map();
+function listFor(kind, ignoreOnly){
+  const ck = kind + (ignoreOnly ? "!" : "");
+  if (cache.has(ck)) return cache.get(ck);
+  const order = kind === "record" ? R.byRecord : R.byClimb;
+  const picks = new Set(state.picks);
+  const onlyMine = !ignoreOnly && state.only && picks.size > 0;
+  const out = [], cap = 4000, N = state.n;
+  if (state.overlap && !onlyMine) {
+    for (let p = 0; p < order.length && out.length < cap; p++) out.push(order[p]);
+    cache.set(ck, out);
+    return out;
+  }
+  const seen = new Map();
+  for (let p = 0; p < order.length && out.length < cap; p++) {
+    const j = order[p], si = R.s[j];
+    if (onlyMine && !picks.has(S[si].t)) continue;
+    if (!state.overlap) {
+      const a = R.i[j], b = a + N;
+      let iv = seen.get(si);
+      if (!iv) { iv = []; seen.set(si, iv); }
+      let clash = false;
+      for (let q = 0; q < iv.length; q += 2) if (a < iv[q + 1] && b > iv[q]) { clash = true; break; }
+      if (clash) continue;
+      iv.push(a, b);
+    }
+    out.push(j);
+  }
+  cache.set(ck, out);
+  return out;
+}
+
+// "44–5" normally; "44–5–1" only when a tie is actually in there
+function record(j){
+  const t = state.n - R.w[j] - R.l[j];
+  return R.w[j] + "–" + R.l[j] + (t ? "–" + t : "");
+}
+function recLabel(j, kind){
+  return kind === "record" ? record(j) + "  " + pct(R.w[j], R.l[j]) : signed(R.g[j] / 10);
+}
+
+function hueFor(code){
+  const k = state.picks.indexOf(code);
+  return k < 0 ? null : (k < HUE.length ? HUE[k] : INK);
+}
+function runInfo(j){
+  const s = S[R.s[j]], i = R.i[j], N = state.n;
+  const w = R.w[j], l = R.l[j], t = N - w - l;
+  const a = dateOf(s, i), b = dateOf(s, i + N - 1);
+  return {j, s, i, N, w, l, t, gain: R.g[j] / 10, code: s.t,
+          label: s.label, when: md(a) + " – " + md(b),
+          eloStart: (s.p + s.cx[i]) / 10, eloEnd: (s.p + s.cx[i + N]) / 10};
+}
+
+/* ============================ 3. lollipops ============================ */
+const ROW = 27, HEADH = 46, VIEWH = 604, NAMEX = 42;   // NAMEX: left edge of the club name
+
+function Lollipop(sel, kind){
+  const box = document.querySelector(sel);
+  const svg = d3.select(box).select("svg");
+  const spacer = box.querySelector(".spacer");
+  let rows = [], scale = null, W = 0;
+
+  function value(j){ return kind === "record" ? R.w[j] / Math.max(1, R.w[j] + R.l[j]) : R.g[j] / 10; }
+  function base(){ return kind === "record" ? 0.5 : 0; }
+
+  function measure(){
+    W = box.clientWidth || 900;
+    // the name column is sized to the names actually on the list, so full club
+    // names survive wherever there is room for them
+    const head = rows.slice(0, 300);
+    const widest = d3.max(head, j => textW(S[R.s[j]].label, 13.5)) || 120;
+    const nameW = Math.min(W * 0.42, Math.max(150, widest + NAMEX + 18));
+    // right margin is measured off the longest value label, so "24–0–1 1.000"
+    // never runs off the edge on a phone
+    const padR = Math.max(58, (d3.max(head, j => textW(recLabel(j, kind), 13, true)) || 40) + 24);
+    const lo = base(), hi = d3.max(rows.slice(0, 400), value) || 1;
+    scale = d3.scaleLinear().domain([lo, hi + (hi - lo) * 0.06]).range([nameW, W - padR]);
+    scale.nameW = nameW; scale.padR = padR;
+  }
+
+  function draw(){
+    const st = box.scrollTop;
+    const first = Math.max(0, Math.floor((st - HEADH) / ROW) - 1);
+    const last = Math.min(rows.length, first + Math.ceil((VIEWH - HEADH) / ROW) + 3);
+    const x0 = scale(base());
+
+    svg.attr("viewBox", [0, 0, W, VIEWH]).attr("width", W).attr("height", VIEWH);
+    let g = svg.select("g.body");
+    if (g.empty()) {
+      // paint order matters: baseline, then rows, then the axis band on top so
+      // rows scroll *under* the sticky header instead of through it
+      svg.append("line").attr("class", "bl").attr("stroke", CLOUD).attr("stroke-width", 1);
+      g = svg.append("g").attr("class", "body");
+      const hd = svg.append("g").attr("class", "head");
+      hd.append("rect").attr("class", "hdbg").attr("fill", "#fff").attr("x", 0).attr("y", -HEADH);
+      hd.append("line").attr("class", "hdrule").attr("stroke", LINE);
+    }
+    const head = svg.select("g.head");
+    head.select("rect.hdbg").attr("y", 0).attr("width", W).attr("height", HEADH - 5);
+    head.select("line.hdrule").attr("x1", 0).attr("x2", W).attr("y1", HEADH - 5).attr("y2", HEADH - 5);
+
+    // tick count follows the plot width, not the window width — the name column
+    // can eat most of a phone screen and leave room for only two labels
+    const ticks = scale.ticks(Math.max(2, Math.floor((W - scale.padR - scale.nameW) / 66)));
+    const tk = head.selectAll("text.tk").data(ticks, d => d);
+    tk.exit().remove();
+    tk.enter().append("text").attr("class", "tk").attr("text-anchor", "middle")
+      .attr("font-family", "var(--body)").attr("font-size", 11.5).attr("fill", FAINT)
+      .merge(tk)
+      .attr("x", d => scale(d)).attr("y", HEADH - 13)
+      .text(d => kind === "record" ? fmtPctTick(d) : signed(d));
+    let cap = head.select("text.cap2");
+    if (cap.empty()) cap = head.append("text").attr("class", "cap2")
+        .attr("font-family", "var(--display)").attr("font-size", 10).attr("letter-spacing", ".1em")
+        .attr("fill", FAINT);
+    cap.attr("x", 0).attr("y", 13).attr("text-anchor", "start")
+       .text(kind === "record" ? "WINNING PERCENTAGE OVER THE STRETCH" : "ELO POINTS GAINED OVER THE STRETCH");
+
+    svg.select("line.bl").attr("x1", x0).attr("x2", x0).attr("y1", HEADH - 5).attr("y2", VIEWH);
+
+    const data = [];
+    for (let p = first; p < last; p++) data.push({p, j: rows[p]});
+    const sel = g.selectAll("g.row").data(data, d => d.j);
+    sel.exit().remove();
+    const en = sel.enter().append("g").attr("class", "row");
+    en.append("line").attr("class", "stem").attr("stroke-linecap", "round");
+    en.append("circle").attr("class", "dot").attr("stroke", "#fff").attr("stroke-width", 2);
+    en.append("text").attr("class", "rk").attr("text-anchor", "end")
+      .attr("font-family", "var(--body)").attr("font-size", 11)
+      .attr("font-variant-numeric", "tabular-nums").attr("fill", CLOUD);
+    en.append("text").attr("class", "nm").attr("font-family", "var(--body)").attr("font-size", 13.5);
+    en.append("text").attr("class", "vl").attr("font-family", "var(--display)")
+      .attr("font-weight", "bold").attr("font-size", 13)
+      .attr("font-variant-numeric", "tabular-nums");
+    en.append("rect").attr("class", "hit").attr("fill", "transparent").attr("x", 0).attr("height", ROW);
+
+    const all = sel.merge(en);
+    all.attr("transform", d => "translate(0," + (HEADH + d.p * ROW - st + 4) + ")");
+    all.each(function(d){
+      const n = d3.select(this), j = d.j, s = S[R.s[j]];
+      const h = hueFor(s.t), on = !!h, col = on ? h : (state.picks.length ? CLOUD : "#8FA3B8");
+      const v = value(j), x = scale(v);
+      n.select("line.stem").attr("x1", x0).attr("x2", x).attr("y1", ROW / 2).attr("y2", ROW / 2)
+        .attr("stroke", on ? h : LINE).attr("stroke-width", on ? 2.5 : 2);
+      n.select("circle.dot").attr("cx", x).attr("cy", ROW / 2).attr("r", on ? 6 : 4.6)
+        .attr("fill", col);
+      n.select("text.rk").attr("x", NAMEX - 9).attr("y", ROW / 2 + 4).text(d.p + 1);
+      n.select("text.nm").attr("x", NAMEX).attr("y", ROW / 2 + 4.5)
+        .attr("fill", on ? INK : SUB).attr("font-weight", on ? 600 : 400)
+        .text(fit(s.label, scale.nameW - NAMEX - 16, 13.5, s.short));
+      n.select("text.vl").attr("x", x + 11).attr("y", ROW / 2 + 4.5).attr("fill", on ? INK : SUB)
+        .text(recLabel(j, kind));
+      n.select("rect.hit").attr("width", W);
+    });
+    all.on("mousemove", (ev, d) => showTip(ev, runInfo(d.j)))
+       .on("mouseleave", hideTip);
+  }
+
+  return {
+    update(){
+      rows = listFor(kind);
+      spacer.style.height = Math.max(0, rows.length * ROW + HEADH + 20 - VIEWH) + "px";
+      measure(); draw();
+    },
+    redraw(){ if (rows.length) { measure(); draw(); } },
+    scrolled: draw,
+    rowsNow: () => rows,
+    scaleNow: () => scale,
+    valueOf: value,
+    baseOf: base
+  };
+}
+function fmtPctTick(v){ return v.toFixed(3).replace(/^0/, ""); }
+
+/* ============================ 4. scatterplot ============================ */
+const scat = (function(){
+  const box = document.getElementById("scat");
+  const cv = box.querySelector("canvas"), ctx = cv.getContext("2d");
+  const svg = d3.select(box).select("svg");
+  let W = 0, H = 620, x = null, y = null, pts = null, grid = null, gw = 0, gh = 0;
+  const M = {t: 18, r: 22, b: 46, l: 58};
+  const CELL = 6;
+
+  // "Only these" filters the ranked lists but not the cloud — a highlighted
+  // club has to be readable against the field it stood out from.
+  function pointSet(){
+    if (state.overlap) return null;                    // null means "every run"
+    const keep = new Set([...listFor("record", true), ...listFor("climb", true)]);
+    return Uint32Array.from(keep);
+  }
+
+  function draw(){
+    W = box.clientWidth || 900;
+    H = Math.max(430, Math.min(660, Math.round(W * 0.56)));
+    pts = pointSet();
+    const count = pts ? pts.length : R.len;
+    const at = k => pts ? pts[k] : k;
+
+    let xlo = 1, xhi = 0, ylo = 1e9, yhi = -1e9;
+    for (let k = 0; k < count; k++) {
+      const j = at(k), g = R.w[j] + R.l[j], p = g ? R.w[j] / g : .5, e = R.g[j] / 10;
+      if (p < xlo) xlo = p; if (p > xhi) xhi = p;
+      if (e < ylo) ylo = e; if (e > yhi) yhi = e;
+    }
+    if (!(xhi > xlo)) { xlo = 0; xhi = 1; }
+    const xp = (xhi - xlo) * .04, yp = (yhi - ylo) * .05;
+    x = d3.scaleLinear().domain([xlo - xp, xhi + xp]).range([M.l, W - M.r]);
+    y = d3.scaleLinear().domain([ylo - yp, yhi + yp]).range([H - M.b, M.t]);
+
+    // ---- canvas cloud
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cv.style.width = W + "px"; cv.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    gw = Math.ceil(W / CELL); gh = Math.ceil(H / CELL);
+    grid = new Int32Array(gw * gh).fill(-1);
+    paintCloud(ctx, x, y, count, at, 1, grid);
+
+    // ---- svg frame
+    svg.attr("viewBox", [0, 0, W, H]).attr("width", W).attr("height", H);
+    svg.selectAll("*").remove();
+    const gx = svg.append("g").attr("transform", "translate(0," + (H - M.b) + ")")
+      .call(d3.axisBottom(x).ticks(W < 700 ? 5 : 8).tickFormat(fmtPctTick).tickSize(-(H - M.t - M.b)));
+    gx.selectAll(".tick line").attr("stroke", LINE);
+    gx.select(".domain").remove();
+    const gy = svg.append("g").attr("transform", "translate(" + M.l + ",0)")
+      .call(d3.axisLeft(y).ticks(6).tickFormat(signed).tickSize(-(W - M.l - M.r)));
+    gy.selectAll(".tick line").attr("stroke", LINE);
+    gy.select(".domain").remove();
+    svg.selectAll(".tick text").attr("font-family", "var(--body)").attr("font-size", 11.5).attr("fill", FAINT);
+
+    // reference rules: a .500 team, and zero Elo change
+    ref(svg, x(.5), null, ".500");
+    ref(svg, null, y(0), "no change");
+
+    svg.append("text").attr("class", "axlab").attr("x", W - M.r).attr("y", H - 8)
+       .attr("text-anchor", "end").text("WINNING PERCENTAGE OVER THE STRETCH →");
+    svg.append("text").attr("class", "axlab").attr("transform", "rotate(-90)")
+       .attr("x", -M.t).attr("y", 14).attr("text-anchor", "end").text("↑ ELO GAINED");
+
+    // label the extremes and each highlighted team's best run
+    const marks = topMarks();
+    if (state.picks.length) {
+      const want = new Set(state.picks), bestOf = new Map();
+      for (let k = 0; k < count; k++) {
+        const j = at(k), code = S[R.s[j]].t;
+        if (!want.has(code)) continue;
+        const b = bestOf.get(code);
+        if (b === undefined || R.g[j] > R.g[b]) bestOf.set(code, j);
+      }
+      for (const [code, j] of bestOf) marks.push({j, hue: hueFor(code)});
+    }
+    annotate(svg.append("g"), marks, x, y, W, 12, s => s.short);
+
+    // hover
+    const hov = svg.append("circle").attr("r", 6).attr("fill", "none")
+      .attr("stroke", INK).attr("stroke-width", 2).style("display", "none");
+    svg.on("mousemove", function(ev){
+      const [mx, my] = d3.pointer(ev, this);
+      const j = nearest(mx, my);
+      if (j == null) { hov.style("display", "none"); hideTip(); return; }
+      const g = R.w[j] + R.l[j];
+      hov.attr("cx", x(g ? R.w[j] / g : .5)).attr("cy", y(R.g[j] / 10)).style("display", null);
+      showTip(ev, runInfo(j));
+    }).on("mouseleave", function(){ hov.style("display", "none"); hideTip(); });
+  }
+
+  // Shared by the live chart and the export, so the shared image is the same
+  // cloud drawn at print resolution rather than an upscaled screenshot.
+  function paintCloud(c, x, y, count, at, k, gridOut){
+    const dim = state.picks.length > 0;
+    const alpha = count > 120000 ? .05 : count > 30000 ? .12 : count > 6000 ? .3 : .55;
+    c.fillStyle = dim ? "rgba(150,155,160," + alpha + ")" : "rgba(90,120,155," + alpha + ")";
+    const r = 0.9 * k, hot = [];
+    for (let q = 0; q < count; q++) {
+      const j = at(q), g = R.w[j] + R.l[j];
+      const px = x(g ? R.w[j] / g : .5), py = y(R.g[j] / 10);
+      if (hueFor(S[R.s[j]].t)) { hot.push(j, px, py); continue; }
+      c.fillRect(px - r, py - r, r * 2, r * 2);
+      if (gridOut) mark(gridOut, px, py, j);
+    }
+    for (let q = 0; q < hot.length; q += 3) {
+      const j = hot[q], px = hot[q + 1], py = hot[q + 2];
+      c.fillStyle = hueFor(S[R.s[j]].t);
+      c.globalAlpha = .85;
+      c.beginPath(); c.arc(px, py, 2.7 * k, 0, 6.2832); c.fill();
+      c.globalAlpha = 1;
+      if (gridOut) mark(gridOut, px, py, j);
+    }
+  }
+  function mark(gridOut, px, py, j){
+    const ci = (py / CELL | 0) * gw + (px / CELL | 0);
+    if (ci >= 0 && ci < gridOut.length) gridOut[ci] = j;
+  }
+
+  function ref(sel, px, py, text){
+    const g = sel.append("g");
+    if (px != null) {
+      g.append("line").attr("x1", px).attr("x2", px).attr("y1", M.t).attr("y2", H - M.b)
+       .attr("stroke", CLOUD).attr("stroke-dasharray", "3 3");
+      g.append("text").attr("x", px + 5).attr("y", M.t + 11).attr("font-family", "var(--body)")
+       .attr("font-size", 11).attr("fill", FAINT).text(text);
+    } else {
+      g.append("line").attr("x1", M.l).attr("x2", W - M.r).attr("y1", py).attr("y2", py)
+       .attr("stroke", CLOUD).attr("stroke-dasharray", "3 3");
+      g.append("text").attr("x", W - M.r - 3).attr("y", py - 5).attr("text-anchor", "end")
+       .attr("font-family", "var(--body)").attr("font-size", 11).attr("fill", FAINT).text(text);
+    }
+  }
+  function nearest(mx, my){
+    if (!grid) return null;
+    const cx = mx / CELL | 0, cy = my / CELL | 0;
+    let best = null, bd = 1e9;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const gx2 = cx + dx, gy2 = cy + dy;
+      if (gx2 < 0 || gy2 < 0 || gx2 >= gw || gy2 >= gh) continue;
+      const j = grid[gy2 * gw + gx2];
+      if (j < 0) continue;
+      const g = R.w[j] + R.l[j];
+      const d = Math.hypot(x(g ? R.w[j] / g : .5) - mx, y(R.g[j] / 10) - my);
+      if (d < bd) { bd = d; best = j; }
+    }
+    return bd < 16 ? best : null;
+  }
+
+  // Draw the cloud into a fresh offscreen canvas at export scale.
+  function raster(pw, ph, ex, ey, k){
+    const c = document.createElement("canvas");
+    c.width = Math.round(pw * k); c.height = Math.round(ph * k);
+    const cx = c.getContext("2d");
+    cx.setTransform(k, 0, 0, k, 0, 0);
+    const pts = pointSet(), count = pts ? pts.length : R.len;
+    paintCloud(cx, ex, ey, count, pts ? (q => pts[q]) : (q => q), 1, null);
+    return c.toDataURL("image/png");
+  }
+
+  return {update: draw, raster, dims: () => ({W, H, M, x, y}),
+          marks: () => topMarks()};
+
+  function topMarks(){
+    const out = [];
+    const rec = listFor("record"), cl = listFor("climb");
+    if (rec.length) out.push({j: rec[0], why: "best record"});
+    if (cl.length && cl[0] !== rec[0]) out.push({j: cl[0], why: "biggest climb"});
+    return out;
+  }
+})();
+
+/* Annotation layer shared by the live scatter and its export. One label per
+   point (a club's best stretch is often also the chart's extreme), and a
+   leader line whenever a label has to move off its dot to avoid a collision. */
+function annotate(g, marks, x, y, W, size, nameOf){
+  // One stretch can be flagged twice — the chart's extreme *and* a highlighted
+  // club's best. Merge those into a single label that keeps both the note and
+  // the club's colour.
+  const seen = new Map(), items = [];
+  for (const m of marks) {
+    const prev = seen.get(m.j);
+    if (prev) { prev.why = prev.why || m.why; prev.hue = prev.hue || m.hue; continue; }
+    const copy = {j: m.j, why: m.why, hue: m.hue || hueFor(S[R.s[m.j]].t)};
+    seen.set(m.j, copy);
+    items.push(copy);
+  }
+  const placed = [];
+  for (const m of items) {
+    const j = m.j, gm = R.w[j] + R.l[j], s = S[R.s[j]];
+    const px = x(gm ? R.w[j] / gm : .5), py = y(R.g[j] / 10);
+    const label = nameOf(s) + (m.why ? "  " + m.why : "");
+    const wide = textW(label, size, true);
+    const side = px + wide + 26 > W ? -1 : 1;
+    let ly = py + 4;
+    while (placed.some(p => Math.abs(p.y - ly) < size + 3 &&
+                            Math.abs(p.x - px) < (wide + p.w) / 2 + 16)) ly -= size + 3;
+    placed.push({x: px, y: ly, w: wide});
+    if (py - ly > 9) {                                  // nudged off its dot — draw the connector
+      g.append("path").attr("d", "M" + px + "," + (py - 6) + "V" + (ly - size * .32) +
+        "h" + (side * 7)).attr("fill", "none").attr("stroke", m.hue || INK)
+        .attr("stroke-width", 1).attr("opacity", .5);
+    }
+    g.append("circle").attr("cx", px).attr("cy", py).attr("r", size * .42)
+     .attr("fill", m.hue || INK).attr("stroke", "#fff").attr("stroke-width", 2);
+    const t = g.append("text").attr("x", px + side * (py - ly > 9 ? 10 : 9)).attr("y", ly)
+      .attr("text-anchor", side > 0 ? "start" : "end")
+      .attr("font-family", 'Futura,"Trebuchet MS",sans-serif').attr("font-weight", "bold")
+      .attr("font-size", size).attr("fill", INK).text(nameOf(s));
+    if (m.why) t.append("tspan")
+      .attr("font-family", '"Gill Sans","Gill Sans MT","Helvetica Neue",Helvetica,Arial,sans-serif')
+      .attr("font-weight", "normal").attr("fill", FAINT).attr("font-size", size - 1)
+      .text("  " + m.why);
+  }
+}
+
+/* ============================ 5. tooltip / toast ============================ */
+const tipEl = document.getElementById("tip");
+function showTip(ev, r){
+  tipEl.style.display = "block";
+  tipEl.innerHTML =
+    '<div class="tt">' + r.label + "</div>" +
+    '<div class="td">' + r.when + " · games " + (r.i + 1) + "–" + (r.i + r.N) + "</div>" +
+    '<div class="tr"><b>' + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l) + ")</div>" +
+    '<div class="tr">Elo <b>' + signed(r.gain) + "</b> · " + Math.round(r.eloStart) +
+      " → " + Math.round(r.eloEnd) + "</div>";
+  const pad = 14, w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  let lx = ev.clientX + pad, ly = ev.clientY + pad;
+  if (lx + w > innerWidth - 8) lx = ev.clientX - w - pad;
+  if (ly + h > innerHeight - 8) ly = ev.clientY - h - pad;
+  tipEl.style.left = lx + "px"; tipEl.style.top = ly + "px";
+}
+function hideTip(){ tipEl.style.display = "none"; }
+
+let toastT = null;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 1900);
+}
+
+/* ============================ 6. hero ============================ */
+function drawHero(){
+  const rows = listFor("record");
+  document.querySelectorAll(".nn").forEach(e => e.textContent = state.n);
+  document.getElementById("leadera").textContent =
+    state.era === 1871 ? "in the whole record" : "since " + state.era;
+  if (!rows.length) {
+    document.getElementById("leadwho").textContent = "No stretch that long yet";
+    document.getElementById("leadrec").textContent = "";
+    d3.select("#strip").selectAll("*").remove();
+    return;
+  }
+  const r = runInfo(rows[0]);
+  document.getElementById("leadwho").textContent = r.label;
+  document.getElementById("leadrec").innerHTML =
+    "<b>" + r.w + "–" + r.l + (r.t ? "–" + r.t : "") + "</b> (" + pct(r.w, r.l) + ") · " +
+    r.when + " · Elo <b>" + signed(r.gain) + "</b>, from " + Math.round(r.eloStart) +
+    " to " + Math.round(r.eloEnd);
+
+  const svg = d3.select("#strip"), box = document.getElementById("strip");
+  const W = box.clientWidth || 500, H = 52;
+  svg.attr("viewBox", [0, 0, W, H]).attr("width", W).attr("height", H);
+  svg.selectAll("*").remove();
+  const N = r.N, gap = N > 90 ? 1 : 2;
+  const bw = Math.max(1.5, (W - gap * (N - 1)) / N);
+  const g = svg.append("g");
+  for (let k = 0; k < N; k++) {
+    const c = r.s.r[r.i + k];
+    const win = c === "W";
+    g.append("rect").attr("x", k * (bw + gap)).attr("y", win ? 8 : 26)
+      .attr("width", bw).attr("height", win ? 18 : 18).attr("rx", Math.min(2, bw / 2))
+      .attr("fill", win ? "#1166CC" : c === "L" ? "#D9DDE2" : "#B9A66B");
+  }
+  svg.append("line").attr("x1", 0).attr("x2", W).attr("y1", 25).attr("y2", 25)
+     .attr("stroke", "#fff").attr("stroke-width", 2);
+  document.getElementById("stripnote").innerHTML =
+    '<span style="color:#1166CC;font-weight:bold">▮</span> win above the line · ' +
+    '<span style="color:#B0B6BD;font-weight:bold">▮</span> loss below' +
+    (r.t ? ' · <span style="color:#B9A66B;font-weight:bold">▮</span> tie' : '') +
+    ' · left to right, in order';
+}
+
+/* ============================ 7. wiring ============================ */
+const lolliA = Lollipop("#reclolli", "record");
+const lolliB = Lollipop("#climblolli", "climb");
+document.getElementById("reclolli").addEventListener("scroll", lolliA.scrolled, {passive: true});
+document.getElementById("climblolli").addEventListener("scroll", lolliB.scrolled, {passive: true});
+
+function titles(){
+  const era = state.era === 1871 ? "all-time" : "since " + state.era;
+  document.getElementById("rectitle").textContent =
+    "Best records over " + state.n + " games, " + era;
+  document.getElementById("climbtitle").textContent =
+    "Biggest Elo gains over " + state.n + " games, " + era;
+  document.getElementById("scattitle").textContent =
+    "Record vs. Elo gained, " + state.n + "-game stretches, " + era;
+  const note = state.overlap
+    ? "Every stretch is shown, including ones that share games."
+    : "Overlapping stretches hidden — each club's streak appears once.";
+  document.getElementById("recsrc").textContent = note + " " + SOURCE;
+  document.getElementById("climbsrc").textContent = note + " " + SOURCE;
+  document.getElementById("scatsrc").textContent =
+    (state.overlap ? "Every stretch in the era is plotted. " : "Overlapping stretches hidden. ") + SOURCE;
+  document.getElementById("footsrc").textContent = SOURCE;
+}
+
+let pending = null;
+function refresh(recompute){
+  if (recompute) computeRuns(); else cache.clear();
+  drawHero(); lolliA.update(); lolliB.update(); scat.update();
+  titles(); drawPicks(); railSummary(); writeHash();
+}
+function refreshSoon(recompute){
+  cancelAnimationFrame(pending);
+  pending = requestAnimationFrame(() => refresh(recompute));
+}
+
+// N slider + presets
+const nslider = document.getElementById("nslider"), nval = document.getElementById("nval");
+nslider.addEventListener("input", () => {
+  state.n = +nslider.value; nval.textContent = state.n;
+  document.querySelectorAll("#npresets .chip").forEach(b =>
+    b.classList.toggle("on", +b.dataset.n === state.n));
+  refreshSoon(true);
+});
+document.querySelectorAll("#npresets .chip").forEach(b => b.addEventListener("click", () => {
+  state.n = +b.dataset.n; nslider.value = state.n; nval.textContent = state.n;
+  document.querySelectorAll("#npresets .chip").forEach(o => o.classList.toggle("on", o === b));
+  refresh(true);
+}));
+document.querySelectorAll("#eras .chip").forEach(b => b.addEventListener("click", () => {
+  state.era = +b.dataset.y;
+  document.querySelectorAll("#eras .chip").forEach(o => o.classList.toggle("on", o === b));
+  refresh(true);
+}));
+const ovBox = document.getElementById("overlap");
+ovBox.addEventListener("change", () => { state.overlap = ovBox.checked; refresh(false); });
+const onlyBox = document.getElementById("onlymine");
+onlyBox.addEventListener("change", () => { state.only = onlyBox.checked; refresh(false); });
+
+// team search
+const tin = document.getElementById("tinput"), tres = document.getElementById("tres");
+let hits = [], cur = -1;
+function runSearch(){
+  const q = tin.value.trim().toLowerCase();
+  hits = q ? SEARCHROWS.filter(r => r.hay.includes(q)).slice(0, 9) : [];
+  cur = hits.length ? 0 : -1;
+  tres.innerHTML = hits.map((r, k) =>
+    '<div data-k="' + k + '" class="' + (k === cur ? "sel" : "") + '">' +
+    "<em style='font-style:normal'>" + r.label + "</em><span>" + r.span + "</span></div>").join("");
+  tres.style.display = hits.length ? "block" : "none";
+}
+tin.addEventListener("input", runSearch);
+tin.addEventListener("keydown", e => {
+  if (e.key === "ArrowDown") { cur = Math.min(hits.length - 1, cur + 1); paint(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { cur = Math.max(0, cur - 1); paint(); e.preventDefault(); }
+  else if (e.key === "Enter" && cur >= 0) { addPick(hits[cur].code); }
+  else if (e.key === "Escape") { tres.style.display = "none"; tin.blur(); }
+});
+function paint(){
+  tres.querySelectorAll("div").forEach((d, k) => d.classList.toggle("sel", k === cur));
+}
+tres.addEventListener("mousedown", e => {
+  const d = e.target.closest("div[data-k]");
+  if (d) { e.preventDefault(); addPick(hits[+d.dataset.k].code); }
+});
+document.addEventListener("click", e => {
+  if (!e.target.closest(".tsearch")) tres.style.display = "none";
+});
+function addPick(code){
+  if (!state.picks.includes(code)) state.picks.push(code);
+  tin.value = ""; tres.style.display = "none"; hits = [];
+  refresh(false);
+}
+function dropPick(code){
+  state.picks = state.picks.filter(c => c !== code);
+  if (!state.picks.length) { state.only = false; onlyBox.checked = false; }
+  refresh(false);
+}
+function drawPicks(){
+  const box = document.getElementById("picks");
+  box.innerHTML = state.picks.map(c => {
+    const f = NAMEIDX.get(c);
+    return '<span class="pick"><i style="background:' + hueFor(c) + '"></i><b>' +
+      (f ? f.now : c) + '</b><u data-drop="' + c + '">×</u></span>';
+  }).join("");
+  box.querySelectorAll("u[data-drop]").forEach(u =>
+    u.addEventListener("click", () => dropPick(u.dataset.drop)));
+  document.getElementById("onlywrap").style.display = state.picks.length ? "inline-flex" : "none";
+}
+
+// collapsed rail on narrow screens
+document.body.classList.add("rail-shut");
+document.getElementById("railtoggle").addEventListener("click", () => {
+  const shut = document.body.classList.toggle("rail-shut");
+  document.getElementById("railtoggle").textContent = shut ? "Filters" : "Done";
+  if (!shut) return;
+  // the charts were laid out behind an open rail; re-measure once it folds away
+  requestAnimationFrame(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); scat.update(); });
+});
+function railSummary(){
+  const t = state.picks.length;
+  document.getElementById("railsum").innerHTML =
+    "<b>" + state.n + "</b> games · since <b>" + state.era + "</b>" +
+    (state.overlap ? " · overlaps shown" : "") +
+    (t ? " · <b>" + t + "</b> team" + (t > 1 ? "s" : "") + " highlighted" : "");
+}
+
+// resize
+let rzT = null;
+addEventListener("resize", () => {
+  clearTimeout(rzT);
+  rzT = setTimeout(() => { drawHero(); lolliA.redraw(); lolliB.redraw(); scat.update(); }, 140);
+});
+addEventListener("scroll", () => {
+  const h = document.documentElement;
+  document.getElementById("progress").style.width =
+    (h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight) * 100) + "%";
+}, {passive: true});
+
+/* ============================ 8. share ============================ */
+function writeHash(){
+  const p = new URLSearchParams();
+  p.set("n", state.n); p.set("era", state.era);
+  if (state.overlap) p.set("ov", 1);
+  if (state.only) p.set("only", 1);
+  if (state.picks.length) p.set("t", state.picks.join(","));
+  history.replaceState(null, "", "#" + p.toString());
+}
+function readHash(){
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (p.has("n")) state.n = Math.max(5, Math.min(162, +p.get("n") || 50));
+  if (p.has("era")) state.era = +p.get("era") || 1901;
+  state.overlap = p.get("ov") === "1";
+  state.only = p.get("only") === "1";
+  if (p.has("t")) state.picks = p.get("t").split(",").filter(c => D.franchise[c]).slice(0, 12);
+}
+function syncControls(){
+  nslider.value = state.n;
+  document.getElementById("nval").textContent = state.n;
+  document.querySelectorAll("#npresets .chip").forEach(b =>
+    b.classList.toggle("on", +b.dataset.n === state.n));
+  document.querySelectorAll("#eras .chip").forEach(b =>
+    b.classList.toggle("on", +b.dataset.y === state.era));
+  ovBox.checked = state.overlap;
+  onlyBox.checked = state.only;
+}
+function copyLink(){
+  writeHash();
+  const url = location.origin + location.pathname + location.hash;
+  navigator.clipboard.writeText(url).then(
+    () => toast("Link copied — it opens on this exact view"),
+    () => toast("Couldn't copy; the URL bar has it"));
+}
+document.getElementById("sharetop").addEventListener("click", e => { e.preventDefault(); copyLink(); });
+document.querySelectorAll("[data-share]").forEach(b => b.addEventListener("click", () => {
+  copyLink(); flash(b, "Copied");
+}));
+document.querySelectorAll("[data-png]").forEach(b =>
+  b.addEventListener("click", () => exportChart(b.dataset.png, "png", b)));
+document.querySelectorAll("[data-svg]").forEach(b =>
+  b.addEventListener("click", () => exportChart(b.dataset.svg, "svg", b)));
+
+/* ============================ 9. export ============================ */
+/* Exports are drawn fresh at print proportions rather than scraped off the
+   page, so the shared image gets a real headline, a legend, and a source
+   line instead of a screenshot of a scroll container. */
+const EX = {W: 1200, PAD: 54};
+const EXCSS = `
+  text{font-family:"Gill Sans","Gill Sans MT","Helvetica Neue",Helvetica,Arial,sans-serif;}
+  .d{font-family:Futura,"Trebuchet MS",sans-serif;font-weight:bold;}
+  .h1{font-size:31px;letter-spacing:-.01em;fill:#0B0B0B;}
+  .h2{font-size:16.5px;fill:#52514E;}
+  .src{font-size:12.5px;fill:#898781;}
+  .rk{font-size:12px;fill:#C3C2B7;}
+  .nm{font-size:15px;}
+  .vl{font-size:14px;}
+  .ax{font-size:12.5px;fill:#898781;}
+  .cap{font-size:11px;letter-spacing:.1em;fill:#898781;}
+`;
+
+function exportChart(kind, fmt, btn){
+  const svg = kind === "scatter" ? exportScatter() : exportLolli(kind);
+  const name = "hot-streaks-" + kind + "-" + state.n + "g-" + state.era +
+               (state.overlap ? "-all" : "") + "." + fmt;
+  if (fmt === "svg") {
+    download(new Blob([svg.text], {type: "image/svg+xml"}), name);
+    flash(btn, "Saved");
+  } else {
+    svgToPng(svg.text, svg.w, svg.h, 2).then(blob => {
+      download(blob, name); flash(btn, "Saved");
+    }).catch(() => toast("Export failed — try the SVG"));
+  }
+}
+function flash(btn, msg){
+  const old = btn.textContent;
+  btn.textContent = msg; btn.classList.add("ok");
+  setTimeout(() => { btn.textContent = old; btn.classList.remove("ok"); }, 1400);
+}
+
+function exportHead(g, title, deck, W){
+  g.append("text").attr("class", "d h1").attr("x", 0).attr("y", 30).text(title);
+  g.append("text").attr("class", "h2").attr("x", 0).attr("y", 56).text(deck);
+  g.append("line").attr("x1", 0).attr("x2", W).attr("y1", 74).attr("y2", 74)
+   .attr("stroke", "#0B0B0B").attr("stroke-width", 2);
+  return 96;
+}
+function legendInto(g, W, y){
+  if (!state.picks.length) return y;
+  let x = 0;
+  for (const c of state.picks) {
+    const f = NAMEIDX.get(c), nm = f ? f.now : c;
+    g.append("circle").attr("cx", x + 6).attr("cy", y - 4).attr("r", 5.5).attr("fill", hueFor(c));
+    g.append("text").attr("class", "nm").attr("x", x + 18).attr("y", y).attr("fill", "#0B0B0B").text(nm);
+    x += 32 + textW(nm, 15);
+  }
+  return y + 22;
+}
+
+function exportLolli(kind){
+  const ROWS = 25;
+  const rows = listFor(kind).slice(0, ROWS);
+  const W = EX.W, P = EX.PAD, IW = W - P * 2;
+  const rowH = 30, nameW = 300, padR = 120;
+  const val = j => kind === "record" ? R.w[j] / Math.max(1, R.w[j] + R.l[j]) : R.g[j] / 10;
+  const base = kind === "record" ? .5 : 0;
+  const hi = d3.max(rows, val) || 1;
+  const x = d3.scaleLinear().domain([base, hi + (hi - base) * .06]).range([nameW, IW - padR]);
+
+  const doc = d3.create("svg").attr("xmlns", "http://www.w3.org/2000/svg");
+  doc.append("style").text(EXCSS);
+  const axY = 100 + (state.picks.length ? 22 : 0) + 26;      // tick baseline
+  const H = 34 + axY + 12 + rows.length * rowH + 50;
+  doc.attr("viewBox", [0, 0, W, H]).attr("width", W).attr("height", H);
+  doc.append("rect").attr("width", W).attr("height", H).attr("fill", "#fff");
+  const g = doc.append("g").attr("transform", "translate(" + P + ",34)");
+
+  const era = state.era === 1871 ? "all-time" : "since " + state.era;
+  const title = kind === "record"
+    ? "The best " + state.n + "-game stretches in baseball, " + era
+    : "The steepest " + state.n + "-game Elo climbs in baseball, " + era;
+  const deck = kind === "record"
+    ? "Winning percentage over any " + state.n + " consecutive regular-season games. Stems start at .500."
+    : "Elo rating gained over any " + state.n + " consecutive regular-season games.";
+  exportHead(g, title, deck, IW);
+  legendInto(g, IW, 100);
+
+  // axis — the caption sits a line above the ticks so it never crowds the
+  // first tick label, which is right at the baseline
+  const y = axY;
+  const ax = g.append("g").attr("transform", "translate(0," + y + ")");
+  ax.append("text").attr("class", "d cap").attr("x", 0).attr("y", -18)
+    .text(kind === "record" ? "WINNING PERCENTAGE OVER THE STRETCH"
+                            : "ELO POINTS GAINED OVER THE STRETCH");
+  for (const t of x.ticks(8)) {
+    ax.append("text").attr("class", "ax").attr("x", x(t)).attr("y", 0)
+      .attr("text-anchor", "middle").text(kind === "record" ? fmtPctTick(t) : signed(t));
+  }
+  const top = y + 12;
+  g.append("line").attr("x1", x(base)).attr("x2", x(base)).attr("y1", top)
+   .attr("y2", top + rows.length * rowH).attr("stroke", "#C3C2B7");
+
+  rows.forEach((j, k) => {
+    const s = S[R.s[j]], h = hueFor(s.t), on = !!h;
+    const cy = top + k * rowH + rowH / 2, xv = x(val(j));
+    const row = g.append("g");
+    row.append("line").attr("x1", x(base)).attr("x2", xv).attr("y1", cy).attr("y2", cy)
+       .attr("stroke", on ? h : "#E1E0D9").attr("stroke-width", on ? 3 : 2.4).attr("stroke-linecap", "round");
+    row.append("circle").attr("cx", xv).attr("cy", cy).attr("r", on ? 6.5 : 5)
+       .attr("fill", on ? h : "#8FA3B8").attr("stroke", "#fff").attr("stroke-width", 2);
+    row.append("text").attr("class", "rk").attr("x", nameW - 268).attr("y", cy + 4)
+       .attr("text-anchor", "end").text(k + 1);
+    row.append("text").attr("class", "nm").attr("x", nameW - 258).attr("y", cy + 5)
+       .attr("fill", on ? "#0B0B0B" : "#52514E")
+       .attr("font-weight", on ? 600 : 400).text(s.label);
+    row.append("text").attr("class", "d vl").attr("x", xv + 12).attr("y", cy + 5)
+       .attr("fill", on ? "#0B0B0B" : "#52514E").text(recLabel(j, kind));
+  });
+
+  const note = state.overlap ? "Overlapping stretches included." :
+    "Overlapping stretches hidden, so each club's streak appears once.";
+  g.append("text").attr("class", "src").attr("x", 0).attr("y", top + rows.length * rowH + 30)
+   .text(note + " " + SOURCE);
+  return {text: serialize(doc.node()), w: W, h: H};
+}
+
+function exportScatter(){
+  const W = EX.W, P = EX.PAD, IW = W - P * 2;
+  const live = scat.dims();
+  const M = {t: 16, r: 26, b: 52, l: 74};
+  const plotW = IW, plotH = 600;
+  const headY = 96 + (state.picks.length ? 22 : 0) + 6;
+  const H = 34 + headY + plotH + 46;
+
+  const doc = d3.create("svg").attr("xmlns", "http://www.w3.org/2000/svg")
+    .attr("xmlns:xlink", "http://www.w3.org/1999/xlink");
+  doc.append("style").text(EXCSS);
+  doc.attr("viewBox", [0, 0, W, H]).attr("width", W).attr("height", H);
+  doc.append("rect").attr("width", W).attr("height", H).attr("fill", "#fff");
+  const g = doc.append("g").attr("transform", "translate(" + P + ",34)");
+
+  const era = state.era === 1871 ? "all-time" : "since " + state.era;
+  let y = exportHead(g,
+    "Winning and getting better are not the same thing",
+    "Each dot is one " + state.n + "-game stretch, " + era +
+      ". Further right won more; higher up gained more Elo.", IW);
+  y = legendInto(g, IW, y + 4);
+
+  const x = live.x.copy().range([M.l, plotW - M.r]);
+  const yy = live.y.copy().range([y + plotH - M.b, y + M.t]);
+  const [x0, x1] = x.range(), [yb, yt] = yy.range();
+
+  // grid first, so the cloud sits on top of it
+  for (const t of x.ticks(8)) g.append("line").attr("x1", x(t)).attr("x2", x(t))
+    .attr("y1", yt).attr("y2", yb).attr("stroke", "#E1E0D9");
+  for (const t of yy.ticks(6)) g.append("line").attr("x1", x0).attr("x2", x1)
+    .attr("y1", yy(t)).attr("y2", yy(t)).attr("stroke", "#E1E0D9");
+
+  const img = scat.raster(plotW, plotH, x, d => yy(d) - y, 2);
+  g.append("image").attr("x", 0).attr("y", y).attr("width", plotW).attr("height", plotH)
+   .attr("preserveAspectRatio", "none").attr("href", img).attr("xlink:href", img);
+
+  // reference rules
+  g.append("line").attr("x1", x(.5)).attr("x2", x(.5)).attr("y1", yt).attr("y2", yb)
+   .attr("stroke", "#C3C2B7").attr("stroke-dasharray", "3 3");
+  g.append("text").attr("class", "ax").attr("x", x(.5) + 6).attr("y", yt + 12).text(".500");
+  g.append("line").attr("x1", x0).attr("x2", x1).attr("y1", yy(0)).attr("y2", yy(0))
+   .attr("stroke", "#C3C2B7").attr("stroke-dasharray", "3 3");
+  g.append("text").attr("class", "ax").attr("x", x1 - 4).attr("y", yy(0) - 6)
+   .attr("text-anchor", "end").text("no change in Elo");
+
+  for (const t of x.ticks(8)) g.append("text").attr("class", "ax").attr("x", x(t))
+    .attr("y", yb + 21).attr("text-anchor", "middle").text(fmtPctTick(t));
+  for (const t of yy.ticks(6)) g.append("text").attr("class", "ax").attr("x", x0 - 10)
+    .attr("y", yy(t) + 4).attr("text-anchor", "end").text(signed(t));
+  g.append("text").attr("class", "d cap").attr("x", x1).attr("y", yb + 42)
+   .attr("text-anchor", "end").text("WINNING PERCENTAGE OVER THE STRETCH →");
+  g.append("text").attr("class", "d cap").attr("transform", "rotate(-90)")
+   .attr("x", -yt).attr("y", x0 - 44).attr("text-anchor", "end").text("↑ ELO GAINED");
+
+  // annotate the two extremes plus each highlighted club's best stretch
+  const marks = scat.marks();
+  if (state.picks.length) {
+    const want = new Set(state.picks), best = new Map();
+    for (const j of new Set([...listFor("record", true), ...listFor("climb", true)])) {
+      const code = S[R.s[j]].t;
+      if (!want.has(code)) continue;
+      const b = best.get(code);
+      if (b === undefined || R.g[j] > R.g[b]) best.set(code, j);
+    }
+    for (const [code, j] of best) marks.push({j, hue: hueFor(code)});
+  }
+  annotate(g, marks, x, yy, x1, 14, s => s.label);
+
+  const note = state.overlap ? "Every stretch in the era is plotted." :
+    "Overlapping stretches hidden, so each club's streak appears once.";
+  g.append("text").attr("class", "src").attr("x", 0).attr("y", yb + 66).text(note + " " + SOURCE);
+  return {text: serialize(doc.node()), w: W, h: H};
+}
+
+function serialize(node){
+  node.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(node);
+}
+function svgToPng(text, w, h, scale){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(new Blob([text], {type: "image/svg+xml;charset=utf-8"}));
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = w * scale; c.height = h * scale;
+      const cx = c.getContext("2d");
+      cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height);
+      cx.drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? res(b) : rej(new Error("toBlob failed")), "image/png");
+    };
+    im.onerror = e => { URL.revokeObjectURL(url); rej(e); };
+    im.src = url;
+  });
+}
+function download(blob, name){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+
+/* ============================ 10. go ============================ */
+document.getElementById("boot").style.display = "none";
+document.getElementById("app").style.display = "";
+syncControls();
+refresh(true);
+
+// nav highlight
+const secs = [...document.querySelectorAll("section")];
+addEventListener("scroll", () => {
+  let id = "";
+  for (const s of secs) if (s.getBoundingClientRect().top < 160) id = s.id;
+  document.querySelectorAll("nav .navlinks a").forEach(a =>
+    a.classList.toggle("active", a.getAttribute("href") === "#" + id));
+}, {passive: true});
+})();
+</script>
+</body>
+</html>
