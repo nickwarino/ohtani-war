@@ -1195,7 +1195,7 @@ const lossFig = (function(){
   }
   function lossLabel(r){
     const t = r.N - r.w - r.l;
-    return r.w + "–" + r.l + (t ? " in " + r.N : "");
+    return r.w + "–" + r.l + (t ? "–" + t : "");
   }
 
   function draw(){
@@ -1288,8 +1288,8 @@ function showLossTip(ev, r){
   tipEl.innerHTML =
     '<div class="tt">' + winLabel(u, r.i, r.N) + "</div>" +
     '<div class="td">' + winWhen(u, r.i, r.N) + "</div>" +
-    '<div class="tr"><b>' + r.w + " wins</b> in " + r.N + " games (" + r.w + "–" + r.l +
-      (t ? "–" + t : "") + ")</div>" +
+    '<div class="tr"><b>' + r.w + "–" + r.l + (t ? "–" + t : "") + "</b> · " +
+      r.N + " games</div>" +
     '<div class="tr">Elo <b>' + signed(r.g / 10) + "</b> · " + Math.round(eloBefore(u, r.i)) +
       " → " + Math.round(eloAfter(u, r.i + r.N - 1)) + "</div>";
   placeTip(ev);
