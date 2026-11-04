@@ -2104,6 +2104,24 @@ function flash(btn, msg){
   setTimeout(() => { btn.textContent = old; btn.classList.remove("ok"); }, 1400);
 }
 
+/* House style sign-off: source notes wrap on the left, the site URL sits bottom
+   right in bold accent red on the last line. Grows the canvas if notes wrap. */
+const SITE_URL = "ohtani.nickwarino.com";
+function signoff(doc, g, IW, y, text){
+  const uz = 17, uw = textW(SITE_URL, uz, true) + 28, room = IW - uw, lines = [];
+  let cur = "";
+  for (const w of text.split(/\s+/)){ const t = cur ? cur + " " + w : w; if (cur && textW(t, 12.5) > room){ lines.push(cur); cur = w; } else cur = t; }
+  if (cur) lines.push(cur);
+  lines.forEach((l, i) => g.append("text").attr("class", "src").attr("x", 0).attr("y", y + i * 17).text(l));
+  const last = y + (lines.length - 1) * 17;
+  g.append("text").attr("x", IW).attr("y", last).attr("text-anchor", "end").attr("font-size", uz)
+   .attr("font-weight", 700).attr("fill", ACCENT).text(SITE_URL);
+  const extra = (lines.length - 1) * 17;
+  if (extra > 0){
+    const W = +doc.attr("width"), H = +doc.attr("height") + extra;
+    doc.attr("height", H).attr("viewBox", [0, 0, W, H]); doc.select("rect").attr("height", H);
+  }
+}
 function exportHead(g, title, deck, W){
   g.append("text").attr("class", "kick").attr("x", 0).attr("y", -4).text("HOT STREAKS · MLB ELO ARCHIVE");
   g.append("text").attr("class", "h1").attr("x", 0).attr("y", 30).text(title);
@@ -2186,9 +2204,8 @@ function exportLolli(kind){
 
   const note = state.overlap ? "Overlapping stretches included." :
     "Overlapping stretches hidden, so each club's streak appears once.";
-  g.append("text").attr("class", "src").attr("x", 0).attr("y", top + rows.length * rowH + 30)
-   .text(note + " " + SOURCE);
-  return {text: serialize(doc.node()), w: W, h: H};
+  signoff(doc, g, IW, top + rows.length * rowH + 30, note + " " + SOURCE);
+  return {text: serialize(doc.node()), w: W, h: +doc.attr("height")};
 }
 
 function exportScatter(){
@@ -2261,8 +2278,8 @@ function exportScatter(){
 
   const note = state.overlap ? "Every stretch in the era is plotted." :
     "Overlapping stretches hidden, so each club's streak appears once.";
-  g.append("text").attr("class", "src").attr("x", 0).attr("y", yb + 66).text(note + " " + SOURCE);
-  return {text: serialize(doc.node()), w: W, h: H};
+  signoff(doc, g, IW, yb + 66, note + " " + SOURCE);
+  return {text: serialize(doc.node()), w: W, h: +doc.attr("height")};
 }
 
 function exportLosses(){
@@ -2314,9 +2331,8 @@ function exportLosses(){
        .attr("fill", on ? INK : SUB).text(lossFig.label(r));
   });
 
-  g.append("text").attr("class", "src").attr("x", 0).attr("y", top + rows.length * rowH + 30)
-   .text((state.span === "career" ? "Runs may carry across the winter. " : "Runs stay inside one season. ") + SOURCE);
-  return {text: serialize(doc.node()), w: W, h: H};
+  signoff(doc, g, IW, top + rows.length * rowH + 30, (state.span === "career" ? "Runs may carry across the winter. " : "Runs stay inside one season. ") + SOURCE);
+  return {text: serialize(doc.node()), w: W, h: +doc.attr("height")};
 }
 
 function exportSeason(){
@@ -2342,11 +2358,10 @@ function exportSeason(){
   prof.geomFor(IW, plotH);
   prof.paintTo(plot, true);
 
-  g.append("text").attr("class", "src").attr("x", 0).attr("y", headY + plotH + 30)
-   .text("Rank counts each club season once. " + SOURCE);
+  signoff(doc, g, IW, headY + plotH + 30, "Rank counts each club season once. " + SOURCE);
   // put the live chart's own geometry back
   prof.update();
-  return {text: serialize(doc.node()), w: W, h: H};
+  return {text: serialize(doc.node()), w: W, h: +doc.attr("height")};
 }
 
 function serialize(node){
