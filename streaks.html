@@ -102,7 +102,7 @@ a:hover{text-decoration-color:var(--hs-accent)}
   :root{
     --ink:var(--hs-ink);--sub:var(--hs-ink-2);--faint:var(--hs-ink-3);--cloud:var(--hs-line);
     --bg:var(--hs-paper);--soft:var(--hs-paper-2);--line:var(--hs-line);--paper:var(--hs-paper-2);
-    /* highlighted teams, in pick order (legend chips say which is which); 6th and later fall back to ink */
+    /* house hues: the two rank series, and teams with no known palette (picked teams wear official colors) */
     --h1:var(--hs-s1);--h2:var(--hs-s2);--h3:var(--hs-s4);--h4:var(--hs-s5);--h5:var(--hs-s3);--h6:var(--hs-ink);
     --display:var(--hs-sans);--body:var(--hs-sans);}
   *{box-sizing:border-box;}
@@ -905,9 +905,46 @@ function recLabel(j, kind){
   return kind === "record" ? record(j) + "  " + pct(R.w[j], R.l[j], state.n) : signed(R.g[j] / 10);
 }
 
+/* Official MLB team colors [primary, secondary, tertiary] (team brand guides; franchise codes as in the Elo file).
+   House rule: teams wear their own colors. Fallbacks: a color with contrast < 2.2 on the paper is skipped for the
+   next official color; a team whose color nearly matches one already shown takes its most distinct official color. */
+const MLB_COLORS = {
+  ANA: ["#BA0021", "#003263", "#862633"], ARI: ["#A71930", "#E3D4AD", "#30CED8"], ATH: ["#003831", "#EFB21E", "#A2AAAD"],
+  ATL: ["#CE1141", "#13274F", "#EAAA00"], BAL: ["#DF4601", "#000000", "#A2AAAD"], BOS: ["#BD3039", "#0C2340", "#FFFFFF"],
+  CHC: ["#0E3386", "#CC3433", "#FFFFFF"], CHW: ["#27251F", "#C4CED4", "#FFFFFF"], CIN: ["#C6011F", "#000000", "#FFFFFF"],
+  CLE: ["#00385D", "#E50022", "#FFFFFF"], COL: ["#33006F", "#C4CED4", "#000000"], DET: ["#0C2340", "#FA4616", "#FFFFFF"],
+  FLA: ["#00A3E0", "#EF3340", "#000000"], HOU: ["#002D62", "#EB6E1F", "#F4911E"], KCR: ["#004687", "#BD9B60", "#FFFFFF"],
+  LAD: ["#005A9C", "#EF3E42", "#A5ACAF"], MIL: ["#12284B", "#FFC52F", "#FFFFFF"], MIN: ["#002B5C", "#D31145", "#B9975B"],
+  NYM: ["#002D72", "#FF5910", "#FFFFFF"], NYY: ["#0C2340", "#C4CED3", "#FFFFFF"], PHI: ["#E81828", "#002D72", "#FFFFFF"],
+  PIT: ["#27251F", "#FDB827", "#FFFFFF"], SDP: ["#2F241D", "#FFC425", "#FFFFFF"], SEA: ["#0C2C56", "#005C5C", "#C4CED4"],
+  SFG: ["#FD5A1E", "#27251F", "#EFD19F"], STL: ["#C41E3A", "#0C2340", "#FEDB00"], TBD: ["#092C5C", "#8FBCE6", "#F5D130"],
+  TEX: ["#003278", "#C0111F", "#FFFFFF"], TOR: ["#134A8E", "#1D2D5C", "#E8291C"], WSN: ["#AB0003", "#14225A", "#FFFFFF"]
+};
+function _rgb(h){ h = h.replace("#", ""); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function _lum(h){ const [r, g, b] = _rgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; }
+function _contrast(a, b){ const x = _lum(a), y = _lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); }
+function _dist(a, b){ const p = _rgb(a), q = _rgb(b), rm = (p[0] + q[0]) / 2, dr = p[0] - q[0], dg = p[1] - q[1], db = p[2] - q[2];
+  return Math.sqrt((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db); }
+function _hex(c){ const r = d3.rgb(c); return "#" + [r.r, r.g, r.b].map(v => Math.round(v).toString(16).padStart(2, "0")).join(""); }
+/* codes in display order -> Map(code -> color). Teams without a known palette get `fallback(i)`. */
+function teamColorMap(codes, paper, fallback){
+  const bg = _hex(paper), out = new Map(), later = [];
+  const legible = c => { const o = MLB_COLORS[c], l = o.filter(h => _contrast(h, bg) >= 2.2); return l.length ? l : [o[0]]; };
+  codes.forEach((c, i) => {
+    if (!MLB_COLORS[c]){ out.set(c, fallback(i)); return; }
+    const h = legible(c)[0];
+    if ([...out.values()].every(u => _dist(h, _hex(u)) > 110)) out.set(c, h); else later.push(c);
+  });
+  for (const c of later){
+    const taken = [...out.values()].map(_hex), score = h => Math.min(Infinity, ...taken.map(u => _dist(h, u)));
+    out.set(c, legible(c).slice().sort((a, b) => score(b) - score(a))[0]);
+  }
+  return out;
+}
 function hueFor(code){
   const k = state.picks.indexOf(code);
-  return k < 0 ? null : (k < HUE.length ? HUE[k] : INK);
+  if (k < 0) return null;
+  return teamColorMap(state.picks, PAPER, i => i < HUE.length ? HUE[i] : INK).get(code);
 }
 function runInfo(j){
   const s = U[R.s[j]], i = R.i[j], N = state.n;

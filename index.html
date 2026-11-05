@@ -100,12 +100,15 @@ a:hover{text-decoration-color:var(--hs-accent)}
   /* ---- site tokens, mapped onto Broadsheet ---- */
   :root{
     --ink:var(--hs-ink);--sub:var(--hs-ink-2);--faint:var(--hs-ink-3);
-    /* player identities (legend: Ohtani red, Bonds blue, Ruth ink) */
-    --ohtani:var(--hs-accent);--bonds:var(--hs-accent-2);--ruth:var(--hs-ink);
+    /* player identities = their signature teams' official colors (house rule 4a):
+       Ohtani = Dodger blue, Ruth = Yankees navy, Bonds = Giants orange */
+    --ohtani:#005A9C;--ruth:#0C2340;--bonds:#FD5A1E;
     --bg:var(--hs-paper);--soft:var(--hs-paper-2);--line:var(--hs-line);
     --cloud:#bdb2a0;                 /* "everyone else" dots and strands */
     --display:var(--hs-serif);--body:var(--hs-sans);}
-  :root[data-theme="dark"]{--cloud:#6a6255;}
+  :root[data-theme="dark"]{--cloud:#6a6255;
+    /* Yankees navy vanishes on dark paper: use the Yankees' official gray */
+    --ruth:#C4CED3;}
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
   body{margin:0;background:var(--hs-paper);color:var(--ink);font-family:var(--hs-sans);line-height:1.6;font-size:18px;}
@@ -115,7 +118,7 @@ a:hover{text-decoration-color:var(--hs-accent)}
   nav{position:fixed;top:0;left:0;right:0;height:50px;background:var(--hs-paper);border-bottom:1px solid var(--hs-line);
       z-index:150;display:flex;align-items:center;gap:10px;padding:0 14px;}
   nav .brand{font:600 19px/1 var(--hs-serif);letter-spacing:-.005em;color:var(--ink);white-space:nowrap;}
-  nav .brand .o{color:var(--hs-accent);}
+  nav .brand .o{color:var(--ohtani);}
   nav .navlinks{display:flex;align-items:center;gap:0;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;}
   nav .navlinks::-webkit-scrollbar{display:none;}
   nav .navlinks > :first-child{margin-left:auto;} nav .navlinks > :last-child{margin-right:auto;}
@@ -182,7 +185,7 @@ a:hover{text-decoration-color:var(--hs-accent)}
   /* ---- masthead + artwork ---- */
   header.hero{width:min(988px,calc(100% - 44px));margin:0 auto;padding:calc(var(--chrome-h,130px) + 26px) 0 16px;border-bottom:1px solid var(--hs-rule);}
   header.hero h1{font:600 clamp(42px,6.6vw,78px)/1.02 var(--hs-serif);letter-spacing:-.015em;margin:12px 0 12px;}
-  header.hero h1 .o{color:var(--hs-accent);}
+  header.hero h1 .o{color:var(--ohtani);}
   header.hero .sub{font:clamp(18px,2.1vw,22px)/1.42 var(--hs-text);color:var(--hs-ink-2);max-width:48ch;margin:0 0 10px;}
   header.hero .sub-def{font:15.5px/1.5 var(--hs-text);color:var(--hs-ink-2);max-width:60ch;margin:0;}
   /* the ink-wash triptych, kept as a toned-down plate under the masthead rather than a full-bleed background */
@@ -628,8 +631,8 @@ const span=(a,z)=>a===z?String(a):String(a)+"-"+String(z).slice(2);   // full st
 const _tok={};
 function C(n){if(!(n in _tok))_tok[n]=getComputedStyle(document.documentElement).getPropertyValue(n).trim();return _tok[n];}
 const SANS='"Helvetica Neue",Helvetica,Arial,sans-serif';
-// player identity: Ohtani = accent red, Bonds = second (blue), Ruth = ink; searched-in players take the Broadsheet series
-const STAR_TOK={Ohtani:'--hs-accent',Ruth:'--hs-ink',Bonds:'--hs-accent-2'};
+// player identity: each star wears his signature team's official color (Dodgers / Yankees / Giants); searched-in players take the Broadsheet series
+const STAR_TOK={Ohtani:'--ohtani',Ruth:'--ruth',Bonds:'--bonds'};
 const PALETTE=['--hs-s3','--hs-s4','--hs-s5','--hs-s6','--hs-s7','--hs-s9','--hs-s10','--hs-s11','--hs-s8'];
 let palI=0;
 
